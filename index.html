@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Intervention - Eisenhower Matrix</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Focus Intervention">
+    <meta name="application-name" content="Focus Intervention">
+    <meta name="msapplication-TileColor" content="#0f172a">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./icons/icon-16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            color: #3b82f6;
+        }
+        
+        .focus-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 12px;
+            border: 2px solid #334155;
+        }
+        
+        .focus-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ef4444;
+            animation: pulse 2s infinite;
+        }
+        
+        .focus-indicator.active {
+            background: #10b981;
+        }
+        
+        .timer-display {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+        
+        .offline-indicator {
+            background: #ef4444;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            animation: pulse 2s infinite;
+        }
+        
+        .intervention-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .popup-content {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 500px;
+            border: 2px solid #3b82f6;
+            box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3);
+        }
+        
+        .intervention-title {
+            font-size: 2em;
+            color: #ef4444;
+            margin-bottom: 15px;
+            animation: shake 0.5s ease;
+        }
+        
+        .intervention-message {
+            font-size: 1.2em;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin: 25px 0;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        
+        .matrix {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 30px 0;
+        }
+        
+        .quadrant {
+            padding: 25px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .quadrant:hover {
+            transform: translateY(-5px);
+            border-color: white;
+        }
+        
+        .quadrant-1 {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+        }
+        
+        .quadrant-2 {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+        }
+        
+        .quadrant-3 {
+            background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+        }
+        
+        .quadrant-4 {
+            background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+        }
+        
+        .quadrant-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .quadrant-desc {
+            font-size: 0.9em;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+        
+        .task-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            background: #1e293b;
+            color: white;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        
+        .task-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .mobile-friendly {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+            z-index: 999;
+        }
+        
+        /* PWA mode adjustments */
+        .pwa-mode {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .pwa-mode .container {
+            padding-top: 30px;
+        }
+        
+        .pwa-mode .header h1::after {
+            content: " 📱";
+            opacity: 0.5;
+        }
+        
+        .notification-permission {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid #f59e0b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .popup-content {
+                margin: 20px;
+                padding: 25px;
+            }
+            
+            .matrix {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Focus Intervention System</h1>
+            <p>Stop doom scrolling. Get back to what matters.</p>
+            
+            <div class="focus-status">
+                <div class="focus-indicator" id="focusIndicator"></div>
+                <span id="statusText">Monitoring focus...</span>
+                <div class="timer-display" id="timerDisplay">00:00</div>
+                <div class="offline-indicator" id="offlineIndicator" style="display: none;">📶 Offline</div>
+            </div>
+        </div>
+
+        <div class="notification-permission" id="installPrompt" style="display: none;">
+            <strong>📲 Install Focus Intervention App</strong><br>
+            Get instant access to focus tools, even offline!
+            <br><br>
+            <button class="btn btn-success" onclick="installPWA()">📱 Install App</button>
+            <button class="btn" onclick="dismissInstall()">Not Now</button>
+        </div>
+
+        <div class="notification-permission" id="notificationAlert">
+            <strong>📱 Enable Notifications</strong><br>
+            Allow notifications to get focus reminders on your phone and desktop
+            <br><br>
+            <button class="btn" onclick="requestNotifications()">Enable Alerts</button>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-success" onclick="startFocusSession()">🎯 Start Focus</button>
+            <button class="btn btn-warning" onclick="setFocusReminder()">⏰ Set Reminders</button>
+            <button class="btn" onclick="quickIntervention()">🚨 I'm Scrolling!</button>
+            <button class="btn btn-danger" onclick="emergencyRefocus()">💥 Emergency Refocus</button>
+        </div>
+
+        <div class="stats" id="todayStats">
+            <div class="stat-card">
+                <div class="stat-number" id="focusTime">0</div>
+                <div class="stat-label">Minutes Focused</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="interventions">0</div>
+                <div class="stat-label">Interventions Used</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="tasksCompleted">0</div>
+                <div class="stat-label">Tasks Completed</div>
+            </div>
+        </div>
+
+        <div class="matrix">
+            <div class="quadrant quadrant-1" onclick="selectQuadrant(1)">
+                <div class="quadrant-title">🔥 DO NOW</div>
+                <div class="quadrant-desc">Urgent + Important<br>Crisis that needs immediate attention</div>
+            </div>
+            
+            <div class="quadrant quadrant-2" onclick="selectQuadrant(2)">
+                <div class="quadrant-title">📅 SCHEDULE</div>
+                <div class="quadrant-desc">Important + Not Urgent<br>Plan time for strategic work</div>
+            </div>
+            
+            <div class="quadrant quadrant-3" onclick="selectQuadrant(3)">
+                <div class="quadrant-title">👥 DELEGATE</div>
+                <div class="quadrant-desc">Urgent + Not Important<br>Get others to handle this</div>
+            </div>
+            
+            <div class="quadrant quadrant-4" onclick="selectQuadrant(4)">
+                <div class="quadrant-title">🗑️ ELIMINATE</div>
+                <div class="quadrant-desc">Not Urgent + Not Important<br>Time wasters like doom scrolling</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Intervention Popup -->
+    <div class="intervention-popup" id="interventionPopup">
+        <div class="popup-content">
+            <div class="intervention-title">⚠️ FOCUS BREAK!</div>
+            <div class="intervention-message" id="interventionMessage">
+                Time to stop scrolling and get back to what matters!
+            </div>
+            
+            <input type="text" class="task-input" id="currentTask" placeholder="What should you be working on right now?">
+            
+            <div class="controls">
+                <button class="btn btn-success" onclick="commitToTask()">✅ I'll Do This Now</button>
+                <button class="btn btn-warning" onclick="setBreakTimer()">⏳ 5 Min Break</button>
+                <button class="btn btn-danger" onclick="closeIntervention()">❌ Ignore (Bad Choice)</button>
+            </div>
+        </div>
+    </div>
+
+    <button class="mobile-friendly" onclick="quickIntervention()" title="Quick Focus Check">
+        🎯
+    </button>
+
+    <script>
+        let focusState = {
+            isActive: false,
+            startTime: null,
+            totalFocusTime: parseInt(localStorage.getItem('totalFocusTime') || '0'),
+            interventions: parseInt(localStorage.getItem('interventions') || '0'),
+            tasksCompleted: parseInt(localStorage.getItem('tasksCompleted') || '0'),
+            reminderInterval: null,
+            notificationsEnabled: false
+        };
+
+        let deferredPrompt;
+
+        // PWA Installation
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallPrompt();
+        });
+
+        function showInstallPrompt() {
+            const installPrompt = document.getElementById('installPrompt');
+            if (installPrompt) {
+                installPrompt.style.display = 'block';
+            }
+        }
+
+        async function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    showNotification('App Installed!', 'Focus Intervention is now available offline');
+                    localStorage.setItem('install-dismissed', 'true');
+                }
+                deferredPrompt = null;
+            } else {
+                // Fallback for iOS or when prompt is not available
+                alert('To install on iOS:\n1. Tap the Share button\n2. Tap "Add to Home Screen"\n\nTo install on Android:\n1. Tap the menu (⋮)\n2. Tap "Install app" or "Add to Home screen"');
+            }
+            dismissInstall();
+        }
+
+        function dismissInstall() {
+            const installPrompt = document.getElementById('installPrompt');
+            if (installPrompt) {
+                installPrompt.style.display = 'none';
+                localStorage.setItem('install-dismissed', 'true');
+            }
+        }
+
+        // Generate PWA assets
+        function generateManifest() {
+            const manifest = {
+                name: "Focus Intervention - Anti Doom Scroll",
+                short_name: "Focus Intervention",
+                description: "Stop doom scrolling and get back to what matters with the Eisenhower Matrix",
+                start_url: "./",
+                scope: "./",
+                display: "standalone",
+                background_color: "#0f172a",
+                theme_color: "#0f172a",
+                orientation: "portrait-primary",
+                categories: ["productivity", "lifestyle", "utilities"],
+                lang: "en",
+                icons: [
+                    {
+                        src: generateIcon(192),
+                        sizes: "192x192",
+                        type: "image/png",
+                        purpose: "any"
+                    },
+                    {
+                        src: generateIcon(192),
+                        sizes: "192x192", 
+                        type: "image/png",
+                        purpose: "maskable"
+                    },
+                    {
+                        src: generateIcon(512),
+                        sizes: "512x512",
+                        type: "image/png",
+                        purpose: "any"
+                    },
+                    {
+                        src: generateIcon(512),
+                        sizes: "512x512",
+                        type: "image/png", 
+                        purpose: "maskable"
+                    }
+                ],
+                shortcuts: [
+                    {
+                        name: "Quick Focus Check",
+                        short_name: "Focus Check",
+                        description: "Immediately check if you're staying focused",
+                        url: "./?action=focus",
+                        icons: [{ src: generateIcon(96), sizes: "96x96" }]
+                    },
+                    {
+                        name: "Start Focus Session",
+                        short_name: "Start Focus",
+                        description: "Begin a new focus session",
+                        url: "./?action=start",
+                        icons: [{ src: generateIcon(96), sizes: "96x96" }]
+                    }
+                ]
+            };
+            
+            return 'data:application/json,' + encodeURIComponent(JSON.stringify(manifest));
+        }
+
+        function generateIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#0f172a');
+            gradient.addColorStop(1, '#3b82f6');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Target symbol
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = size * 0.05;
+            
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const radius = size * 0.3;
+            
+            // Outer circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Middle circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.6, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Inner circle (filled)
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.3, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            return canvas.toDataURL();
+        }
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                        
+                        // Listen for updates
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // New content available, notify user
+                                    showUpdateAvailable();
+                                }
+                            });
+                        });
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+                    
+                // Listen for messages from service worker
+                navigator.serviceWorker.addEventListener('message', (event) => {
+                    if (event.data && event.data.type === 'SYNC_SUCCESS') {
+                        showNotification('Data Synced!', `${event.data.data} items synced to cloud`);
+                    }
+                });
+            });
+        }
+
+        function showUpdateAvailable() {
+            const updateBanner = document.createElement('div');
+            updateBanner.className = 'notification-permission';
+            updateBanner.innerHTML = `
+                <strong>🔄 App Update Available</strong><br>
+                A new version of Focus Intervention is ready
+                <br><br>
+                <button class="btn btn-success" onclick="updateApp()">Update Now</button>
+                <button class="btn" onclick="dismissUpdate(this)">Later</button>
+            `;
+            updateBanner.id = 'updateBanner';
+            document.querySelector('.container').insertBefore(updateBanner, document.querySelector('.header').nextSibling);
+        }
+
+        function updateApp() {
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                window.location.reload();
+            }
+        }
+
+        function dismissUpdate(button) {
+            button.closest('#updateBanner').remove();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Setup PWA assets
+            setupPWAAssets();
+            
+            updateStats();
+            checkNotificationPermission();
+            
+            // Handle PWA shortcuts
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            
+            if (action === 'focus') {
+                setTimeout(quickIntervention, 1000);
+            } else if (action === 'start') {
+                setTimeout(startFocusSession, 1000);
+            } else if (action === 'emergency') {
+                setTimeout(emergencyRefocus, 500);
+            }
+            
+            // Auto-remind every 15 minutes if notifications enabled
+            setInterval(() => {
+                if (focusState.notificationsEnabled) {
+                    showNotification('Focus Check', 'What are you working on right now?');
+                }
+            }, 15 * 60 * 1000);
+            
+            // Detect potential doom scrolling (rapid scrolling)
+            let scrollCount = 0;
+            let scrollTimer;
+            
+            window.addEventListener('scroll', () => {
+                scrollCount++;
+                clearTimeout(scrollTimer);
+                
+                scrollTimer = setTimeout(() => {
+                    if (scrollCount > 10) {
+                        // Rapid scrolling detected
+                        setTimeout(() => {
+                            showIntervention('Rapid scrolling detected! Are you doom scrolling?');
+                        }, 2000);
+                    }
+                    scrollCount = 0;
+                }, 1000);
+            });
+            
+            // Detect tab switching (potential distraction)
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    // User switched tabs - potential distraction
+                    setTimeout(() => {
+                        if (!document.hidden) {
+                            // User came back
+                            showNotification('Welcome back!', 'Did you stay focused on other tabs?');
+                        }
+                    }, 5000);
+                }
+            });
+        });
+
+        function setupPWAAssets() {
+            // Setup offline/online detection
+            window.addEventListener('online', () => {
+                document.getElementById('offlineIndicator').style.display = 'none';
+                showNotification('Back Online!', 'Focus data will sync now');
+                
+                // Trigger background sync if supported
+                if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+                    navigator.serviceWorker.ready.then((registration) => {
+                        return registration.sync.register('focus-data-sync');
+                    });
+                }
+            });
+            
+            window.addEventListener('offline', () => {
+                document.getElementById('offlineIndicator').style.display = 'block';
+            });
+            
+            // Check if running as PWA
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+                // Running as installed PWA
+                document.body.classList.add('pwa-mode');
+                console.log('Running as PWA');
+                
+                // Hide install prompt since already installed
+                const installPrompt = document.getElementById('installPrompt');
+                if (installPrompt) installPrompt.style.display = 'none';
+            } else {
+                // Running in browser - show install prompt after delay
+                setTimeout(() => {
+                    if (!localStorage.getItem('install-dismissed')) {
+                        showInstallPrompt();
+                    }
+                }, 5000);
+            }
+        }
+
+        // Request notification permissions
+        async function requestNotifications() {
+            if ('Notification' in window) {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    focusState.notificationsEnabled = true;
+                    document.getElementById('notificationAlert').style.display = 'none';
+                    showNotification('Focus System Activated!', 'You\'ll now get focus reminders');
+                }
+            }
+        }
+
+        function checkNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                focusState.notificationsEnabled = true;
+                document.getElementById('notificationAlert').style.display = 'none';
+            }
+        }
+
+        function showNotification(title, body) {
+            if (focusState.notificationsEnabled) {
+                new Notification(title, {
+                    body: body,
+                    icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiMzYjgyZjYiLz4KPHN2ZyB4PSIxNiIgeT0iMTYiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjMiLz4KPHBhdGggZD0iTTEyIDFWM00xMiAyMXYyTTQuMjIgNC4yMmwxLjQyIDEuNDJNMTguMzYgMTguMzZsMS40MiAxLjQyTTEgMTJIM00yMSAxMmgyTTQuMjIgMTkuNzhsMS40Mi0xLjQyTTE4LjM2IDUuNjRsMS40Mi0xLjQyIi8+Cjwvc3ZnPgo8L3N2Zz4K',
+                    tag: 'focus-reminder',
+                    requireInteraction: true
+                });
+            }
+        }
+
+        // Start focus session
+        function startFocusSession() {
+            focusState.isActive = true;
+            focusState.startTime = Date.now();
+            
+            document.getElementById('focusIndicator').classList.add('active');
+            document.getElementById('statusText').textContent = 'Focus session active';
+            
+            updateTimer();
+            showNotification('Focus Session Started!', 'Time to get things done 🎯');
+        }
+
+        // Set focus reminders
+        function setFocusReminder() {
+            const minutes = prompt('Remind me every how many minutes? (default: 15)', '15');
+            if (minutes) {
+                clearInterval(focusState.reminderInterval);
+                focusState.reminderInterval = setInterval(() => {
+                    showIntervention(`Focus check! It's been ${minutes} minutes.`);
+                }, parseInt(minutes) * 60 * 1000);
+                
+                showNotification('Reminders Set!', `You'll get focus checks every ${minutes} minutes`);
+            }
+        }
+
+        // Quick intervention
+        function quickIntervention() {
+            const messages = [
+                'What should you be working on right now?',
+                'Are you being productive or just busy?',
+                'Is this the most important thing you could be doing?',
+                'Stop scrolling. Start doing.',
+                'Your goals won\'t achieve themselves!',
+                'Focus time! What\'s the ONE thing that matters most?'
+            ];
+            
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            showIntervention(randomMessage);
+            
+            focusState.interventions++;
+            updateStats();
+            saveStats();
+        }
+
+        // Emergency refocus
+        function emergencyRefocus() {
+            showIntervention('🚨 EMERGENCY REFOCUS! Drop everything and focus on what matters most right NOW!');
+            focusState.interventions++;
+            updateStats();
+            saveStats();
+        }
+
+        // Show intervention popup
+        function showIntervention(message) {
+            document.getElementById('interventionMessage').textContent = message;
+            document.getElementById('interventionPopup').style.display = 'flex';
+            document.getElementById('currentTask').focus();
+        }
+
+        // Select quadrant
+        function selectQuadrant(quadrant) {
+            const quadrantNames = ['', 'DO NOW', 'SCHEDULE', 'DELEGATE', 'ELIMINATE'];
+            const messages = [
+                '',
+                'This is urgent AND important - handle it immediately!',
+                'This is important but not urgent - schedule dedicated time for it.',
+                'This is urgent but not important for you - find someone else to handle it.',
+                'This is neither urgent nor important - eliminate or minimize this activity!'
+            ];
+            
+            showIntervention(`${quadrantNames[quadrant]}: ${messages[quadrant]}`);
+        }
+
+        // Commit to task
+        function commitToTask() {
+            const task = document.getElementById('currentTask').value.trim();
+            if (task) {
+                focusState.tasksCompleted++;
+                startFocusSession();
+                closeIntervention();
+                showNotification('Task Committed!', `Working on: ${task}`);
+                updateStats();
+                saveStats();
+            } else {
+                alert('Please enter what you\'ll work on!');
+            }
+        }
+
+        // Set break timer
+        function setBreakTimer() {
+            closeIntervention();
+            showNotification('5 Minute Break', 'Rest up, then get back to work!');
+            
+            setTimeout(() => {
+                showIntervention('Break\'s over! Time to get back to productive work!');
+            }, 5 * 60 * 1000);
+        }
+
+        // Close intervention
+        function closeIntervention() {
+            document.getElementById('interventionPopup').style.display = 'none';
+            document.getElementById('currentTask').value = '';
+        }
+
+        // Update timer display
+        function updateTimer() {
+            if (focusState.isActive && focusState.startTime) {
+                const elapsed = Math.floor((Date.now() - focusState.startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                
+                document.getElementById('timerDisplay').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Update total focus time every minute
+                if (elapsed > 0 && elapsed % 60 === 0) {
+                    focusState.totalFocusTime++;
+                    updateStats();
+                    saveStats();
+                }
+                
+                requestAnimationFrame(updateTimer);
+            }
+        }
+
+        // Update stats display
+        function updateStats() {
+            document.getElementById('focusTime').textContent = focusState.totalFocusTime;
+            document.getElementById('interventions').textContent = focusState.interventions;
+            document.getElementById('tasksCompleted').textContent = focusState.tasksCompleted;
+        }
+
+        // Save stats to localStorage
+        function saveStats() {
+            localStorage.setItem('totalFocusTime', focusState.totalFocusTime.toString());
+            localStorage.setItem('interventions', focusState.interventions.toString());
+            localStorage.setItem('tasksCompleted', focusState.tasksCompleted.toString());
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'i': // Ctrl+I for intervention
+                        e.preventDefault();
+                        quickIntervention();
+                        break;
+                    case 'f': // Ctrl+F for focus
+                        e.preventDefault();
+                        startFocusSession();
+                        break;
+                }
+            }
+            
+            // ESC to close popup
+            if (e.key === 'Escape') {
+                closeIntervention();
+            }
+        });
+    </script>
+</body>
+</html>
