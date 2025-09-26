@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Icon Generator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .icon-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .icon-preview {
+            margin: 10px 0;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .generated-files {
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+        
+        .file-structure {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 PWA Icon Generator</h1>
+            <p>Generate all required icons for your Focus Intervention PWA</p>
+            
+            <button class="btn" onclick="generateAllIcons()">📸 Generate All Icons</button>
+            <button class="btn" onclick="downloadZip()">📦 Download ZIP</button>
+        </div>
+
+        <div class="file-structure">
+            <h3>Required File Structure:</h3>
+            <pre>
+focus-intervention/
+├── index.html
+├── manifest.json
+├── service-worker.js
+├── icons/
+│   ├── icon-16.png
+│   ├── icon-32.png
+│   ├── icon-72.png
+│   ├── icon-96.png
+│   ├── icon-128.png
+│   ├── icon-144.png
+│   ├── icon-152.png
+│   ├── icon-180.png (Apple Touch Icon)
+│   ├── icon-192.png
+│   ├── icon-384.png
+│   └── icon-512.png
+└── screenshots/ (optional)
+    ├── desktop.png
+    └── mobile.png
+            </pre>
+        </div>
+
+        <div class="icon-grid" id="iconGrid">
+            <!-- Icons will be generated here -->
+        </div>
+
+        <div class="generated-files" id="generatedFiles" style="display: none;">
+            <h3>Generated Files Ready for Download</h3>
+            <div id="fileList"></div>
+        </div>
+    </div>
+
+    <script>
+        const ICON_SIZES = [16, 32, 72, 96, 128, 144, 152, 180, 192, 384, 512];
+        let generatedFiles = {};
+
+        function generateIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#0f172a');
+            gradient.addColorStop(1, '#3b82f6');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Add rounded corners for larger icons
+            if (size >= 128) {
+                const radius = size * 0.1;
+                ctx.globalCompositeOperation = 'destination-in';
+                ctx.beginPath();
+                ctx.roundRect(0, 0, size, size, radius);
+                ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+            }
+            
+            // Target symbol
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = Math.max(2, size * 0.04);
+            ctx.lineCap = 'round';
+            
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const radius = size * 0.25;
+            
+            // Outer circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Middle circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.65, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Inner circle (filled)
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.3, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Add crosshairs for targeting
+            const crossSize = radius * 0.15;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = Math.max(1, size * 0.02);
+            
+            // Vertical line
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - crossSize);
+            ctx.lineTo(centerX, centerY + crossSize);
+            ctx.stroke();
+            
+            // Horizontal line
+            ctx.beginPath();
+            ctx.moveTo(centerX - crossSize, centerY);
+            ctx.lineTo(centerX + crossSize, centerY);
+            ctx.stroke();
+            
+            return canvas;
+        }
+
+        function generateAllIcons() {
+            const iconGrid = document.getElementById('iconGrid');
+            iconGrid.innerHTML = '';
+            generatedFiles = {};
+
+            ICON_SIZES.forEach(size => {
+                const canvas = generateIcon(size);
+                
+                // Create card
+                const card = document.createElement('div');
+                card.className = 'icon-card';
+                
+                // Preview
+                const preview = canvas.cloneNode();
+                preview.getContext('2d').drawImage(canvas, 0, 0);
+                preview.style.width = '64px';
+                preview.style.height = '64px';
+                preview.style.border = '1px solid #334155';
+                preview.style.borderRadius = '8px';
+                
+                // Info
+                const info = document.createElement('div');
+                info.innerHTML = `
+                    <h4>icon-${size}.png</h4>
+                    <p>${size}×${size} pixels</p>
+                    <div class="icon-preview"></div>
+                    <button class="btn" onclick="downloadIcon(${size})">Download</button>
+                `;
+                
+                info.querySelector('.icon-preview').appendChild(preview);
+                card.appendChild(info);
+                iconGrid.appendChild(card);
+                
+                // Store canvas for later download
+                generatedFiles[`icon-${size}.png`] = canvas;
+            });
+            
+            document.getElementById('generatedFiles').style.display = 'block';
+            updateFileList();
+        }
+
+        function downloadIcon(size) {
+            const canvas = generatedFiles[`icon-${size}.png`];
+            if (canvas) {
+                canvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `icon-${size}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                });
+            }
+        }
+
+        function updateFileList() {
+            const fileList = document.getElementById('fileList');
+            const files = Object.keys(generatedFiles);
+            
+            fileList.innerHTML = files.map(filename => 
+                `<div>✅ ${filename}</div>`
+            ).join('');
+        }
+
+        async function downloadZip() {
+            if (Object.keys(generatedFiles).length === 0) {
+                alert('Please generate icons first!');
+                return;
+            }
+
+            // Create a simple ZIP-like structure (base64 encoded files)
+            const zipData = {};
+            
+            for (const [filename, canvas] of Object.entries(generatedFiles)) {
+                const dataURL = canvas.toDataURL('image/png');
+                const base64 = dataURL.split(',')[1];
+                zipData[filename] = base64;
+            }
+            
+            // Create a downloadable file with all icon data
+            const zipContent = JSON.stringify(zipData, null, 2);
+            const blob = new Blob([zipContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'focus-intervention-icons.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // Also provide instructions
+            alert(`Icons exported as JSON file!
+
+To use these icons:
+1. Create an 'icons' folder in your PWA directory
+2. Use an online base64 to PNG converter for each icon
+3. Or use the individual download buttons above
+
+The JSON file contains all icons as base64 data that you can convert to PNG files.`);
+        }
+
+        // Auto-generate on load
+        document.addEventListener('DOMContentLoaded', () => {
+            generateAllIcons();
+        });
+    </script>
+</body>
+</html>
