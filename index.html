@@ -613,6 +613,17 @@
     }
     $('#statTodayEvents').textContent = events.length;
   }
+    // Make wheel always scroll the planner grid (fixes Windows/desktop cases)
+if (grid) {
+  grid.addEventListener('wheel', (e) => {
+    // if the cursor is over the grid, consume the wheel so body doesn't scroll
+    const r = grid.getBoundingClientRect();
+    const inside = e.clientY >= r.top && e.clientY <= r.bottom && e.clientX >= r.left && e.clientX <= r.right;
+    if (!inside) return;
+    grid.scrollTop += e.deltaY;
+    e.preventDefault(); // needs non-passive listener
+  }, { passive: false });
+}
   function placeEvent(ev){
     const startM = ev.start, endM = ev.end;
     const top = startM * 56 / 60;
