@@ -56,7 +56,6 @@
     .section h2{margin:0 0 10px; font-size:1.05rem}
 
     /* Tabs (mobile) */
-    .tabs{display:none}
     .tabbar{
       position:fixed; bottom:0; left:0; right:0; z-index:9;
       background:rgba(15,23,42,.96); backdrop-filter: blur(8px);
@@ -68,14 +67,9 @@
       min-height:44px; border-radius:12px; color:#cbd5e1; border:1px solid transparent; font-size:11px;
     }
     .tabbtn.active{color:#fff; border-color:#28406d; background:#12203a}
-    .hide-mobile{display:none}
-    @media(min-width:900px){
-      .tabbar{display:none}
-      .tabs{display:none}
-      .hide-mobile{display:block}
-    }
+    @media(min-width:900px){ .tabbar{display:none} }
 
-    /* Controls */
+    /* Buttons & inputs */
     .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px;
       padding:10px 14px; min-height:var(--tap); border-radius:10px; border:1px solid #2a3a57; background:linear-gradient(135deg,#28406d,#1b2e52); color:#fff; cursor:pointer; font-weight:600}
     .btn:active{transform: translateY(1px)}
@@ -83,10 +77,10 @@
     .btn.warn{background:linear-gradient(135deg,#f59e0b,#b45309); border-color:#b45309}
     .btn.danger{background:linear-gradient(135deg,#ef4444,#b91c1c); border-color:#b91c1c}
     .btn.ghost{background:transparent}
-
     .row{display:flex; gap:8px; flex-wrap:wrap}
+    .chip{font-size:11px; padding:3px 8px; background:#173054; border:1px solid #28406d; border-radius:999px; color:#cbd5e1}
 
-    /* Matrix (accordion on mobile) */
+    /* Matrix */
     .matrix{display:grid; grid-template-columns:1fr 1fr; gap:10px}
     @media(max-width:899px){ .matrix{grid-template-columns:1fr} }
     .quad{padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,.15); cursor:pointer}
@@ -99,68 +93,44 @@
 
     /* Tasks */
     .task-add{display:flex; gap:8px; margin:10px 0}
-    .input{
-      flex:1; padding:12px; min-height:var(--tap); border-radius:10px; border:1px solid #2a3a57; background:#111c30; color:#fff; font-size:16px;
-    }
+    .input{flex:1; padding:12px; min-height:var(--tap); border-radius:10px; border:1px solid #2a3a57; background:#111c30; color:#fff; font-size:16px;}
     .tasklist{display:grid; gap:8px; max-height:360px; overflow:auto; padding-right:2px}
     .task{display:flex; align-items:center; gap:8px; padding:10px; border:1px solid #263754; background:#0f1a30; border-radius:10px}
     .task .title{flex:1}
-    .chip{font-size:11px; padding:3px 8px; background:#173054; border:1px solid #28406d; border-radius:999px; color:#cbd5e1}
 
-    /* Day Planner (24h) */
-    .planner{
-      border:1px solid #263754; border-radius:12px; overflow:hidden; background:#0e1729;
-      display:flex; flex-direction:column; height:520px;
-    }
-    .planner-head{
-      display:flex; align-items:center; justify-content:space-between; gap:8px;
-      padding:8px; border-bottom:1px solid #1f2a44; position:sticky; top:0; background:#0e1729; z-index:2;
-    }
+    /* Planner (24h) */
+    .planner{border:1px solid #263754; border-radius:12px; overflow:hidden; background:#0e1729; display:flex; flex-direction:column; height:520px;}
+    .planner-head{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px; border-bottom:1px solid #1f2a44; position:sticky; top:0; background:#0e1729; z-index:3;}
     .planner-day{font-weight:700}
-    .planner-grid{
-      position:relative; flex:1; overflow:auto; -webkit-overflow-scrolling: touch; scroll-behavior:smooth;
-      background:
-        linear-gradient(#1f2a44 1px, transparent 1px) 0 0/100% 56px; /* hour lines */
-    }
+    .weekstrip{display:flex; gap:6px; overflow:auto; -webkit-overflow-scrolling:touch; padding:6px 8px; border-bottom:1px solid #1f2a44; background:#0e1729; position:sticky; top:44px; z-index:2;}
+    .daybtn{min-width:48px; padding:8px 10px; border-radius:10px; border:1px solid #263754; background:#0f1a30; color:#cbd5e1; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:12px; cursor:pointer;}
+    .daybtn strong{font-size:13px; color:#e5edf9}
+    .daybtn.active{border-color:#2b4b80; background:#112241}
+
+    .planner-grid{position:relative; flex:1; overflow:auto; -webkit-overflow-scrolling: touch; scroll-behavior:smooth; background: linear-gradient(#1f2a44 1px, transparent 1px) 0 0/100% 56px;}
     .hour{position:relative; height:56px; padding-left:58px; display:flex; align-items:flex-start; color:#8ea3c2; font-size:12px}
-    .hour::before{
-      content:attr(data-h); position:absolute; left:8px; top:6px; width:42px; text-align:right; opacity:.8;
-    }
-    .nowline{
-      position:absolute; left:0; right:0; height:2px; background:var(--danger); z-index:1;
-      box-shadow:0 0 6px rgba(239,68,68,.7);
-    }
-    .event{
-      position:absolute; left:58px; right:8px; border:1px solid #2c4a7a; background:rgba(59,130,246,.2);
-      border-left:3px solid var(--brand); border-radius:10px; padding:6px 8px; color:#e5edf9; font-size:13px;
-      display:flex; justify-content:space-between; gap:8px;
-    }
+    .hour::before{content:attr(data-h); position:absolute; left:8px; top:6px; width:42px; text-align:right; opacity:.8;}
+    .nowline{position:absolute; left:0; right:0; height:2px; background:var(--danger); z-index:1; box-shadow:0 0 6px rgba(239,68,68,.7);}
+    .event{position:absolute; left:58px; right:8px; border:1px solid #2c4a7a; background:rgba(59,130,246,.2); border-left:3px solid var(--brand); border-radius:10px; padding:6px 8px; color:#e5edf9; font-size:13px; display:flex; justify-content:space-between; gap:8px;}
     .ev-time{font-size:11px; color:#c7d2fe}
     .ev-chip{font-size:10px; padding:2px 6px; background:#0f2549; border:1px solid #2b4b80; border-radius:999px}
 
-    /* Popup / sheets */
-    .sheet{
-      position:fixed; inset:0; background:rgba(0,0,0,.65); display:none; align-items:flex-end; justify-content:center; z-index:20;
-    }
+    /* Sheets */
+    .sheet{position:fixed; inset:0; background:rgba(0,0,0,.65); display:none; align-items:flex-end; justify-content:center; z-index:20;}
     .sheet.open{display:flex}
-    .sheet-card{
-      width:100%; max-width:560px; background:#0e1729; border-top-left-radius:16px; border-top-right-radius:16px;
-      border:1px solid #1f2a44; padding:14px 14px max(14px, env(safe-area-inset-bottom));
-      animation:rise .2s ease-out;
-    }
+    .sheet-card{width:100%; max-width:560px; background:#0e1729; border-top-left-radius:16px; border-top-right-radius:16px; border:1px solid #1f2a44; padding:14px 14px max(14px, env(safe-area-inset-bottom)); animation:rise .2s ease-out;}
     .sheet h3{margin:0 0 8px}
     .form-row{display:flex; gap:8px; margin:8px 0}
     .select,.time{height:44px}
     .select,.time,.input{appearance:none}
+    .switch{display:flex; align-items:center; gap:8px}
+    .range{width:100%}
+    .small{font-size:12px; color:#93a5c4}
 
     /* Floating action */
-    .fab{
-      position:fixed; right:16px; bottom: calc(70px + env(safe-area-inset-bottom));
-      width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,var(--brand),var(--brand-2));
-      display:flex; align-items:center; justify-content:center; border:none; color:#fff; font-size:22px; z-index:8; box-shadow:0 8px 28px rgba(59,130,246,.45);
-    }
+    .fab{position:fixed; right:16px; bottom: calc(70px + env(safe-area-inset-bottom)); width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,var(--brand),var(--brand-2)); display:flex; align-items:center; justify-content:center; border:none; color:#fff; font-size:22px; z-index:8; box-shadow:0 8px 28px rgba(59,130,246,.45);}
 
-    /* Stats pills */
+    /* Stats */
     .stats{display:grid; grid-template-columns: repeat(3,1fr); gap:8px}
     .pill{background:#0e1729; border:1px solid #263754; border-radius:12px; text-align:center; padding:10px}
     .num{font-size:1.2rem; color:var(--brand); font-weight:800}
@@ -183,14 +153,12 @@
         <div class="hdr-right">
           <span id="timerDisplay">00:00</span>
           <span id="offlineIndicator" class="chip" style="display:none;background:#3c1420;border-color:#702a3a;color:#fecaca">Offline</span>
+          <button class="btn ghost" onclick="openSettings()" title="Settings">⚙️</button>
         </div>
       </div>
     </header>
 
     <main class="content">
-      <!-- Mobile Tabs: show one section at a time -->
-      <div class="tabs" id="tabs" hidden></div>
-
       <div id="view-matrix" class="section">
         <h2>Eisenhower Matrix</h2>
         <div class="matrix">
@@ -234,9 +202,11 @@
               <button class="btn ghost" onclick="shiftDay(1)">▶</button>
             </div>
           </div>
-          <div class="planner-grid" id="plannerGrid" onclick="tapHour(event)">
-            <!-- Hours injected -->
-          </div>
+
+          <!-- Week strip -->
+          <div class="weekstrip" id="weekStrip"></div>
+
+          <div class="planner-grid" id="plannerGrid" onclick="tapHour(event)"></div>
         </div>
       </div>
 
@@ -278,7 +248,37 @@
     </div>
   </div>
 
-  <!-- Intervention Popup (kept minimal, touch-friendly) -->
+  <!-- Settings Sheet -->
+  <div class="sheet" id="settingsSheet" aria-hidden="true">
+    <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <h3 id="settings-title">Settings</h3>
+
+      <div class="switch" style="margin:8px 0">
+        <input id="nudgeEnabled" type="checkbox">
+        <label for="nudgeEnabled"><strong>Enable in-app scroll nudge</strong></label>
+      </div>
+      <div class="small">If you use the browser extension, you can turn this off to avoid double nudges.</div>
+
+      <div style="margin-top:10px">
+        <label for="nudgeSensitivity"><strong>Sensitivity</strong> <span id="sensLabel" class="small"></span></label>
+        <input id="nudgeSensitivity" class="range" type="range" min="1" max="5" step="1">
+        <div class="small">1 = least sensitive, 5 = most sensitive.</div>
+      </div>
+
+      <div style="margin-top:10px">
+        <label for="nudgeCooldown"><strong>Cooldown (minutes)</strong></label>
+        <input id="nudgeCooldown" class="input" type="number" min="0" step="1" value="1">
+        <div class="small">Minimum time between two alerts.</div>
+      </div>
+
+      <div class="row" style="justify-content:flex-end; margin-top:12px">
+        <button class="btn ghost" onclick="closeSettings()">Close</button>
+        <button class="btn ok" onclick="saveSettings()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Intervention Sheet -->
   <div class="sheet" id="interventionPopup" aria-hidden="true">
     <div class="sheet-card" role="dialog" aria-modal="true">
       <h3>⚠️ FOCUS BREAK!</h3>
@@ -310,7 +310,6 @@
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./service-worker.js').then(reg=>{
-        // Listen for updates to show in-app banner (optional)
         reg.addEventListener('updatefound', ()=>{
           const nw = reg.installing;
           nw?.addEventListener('statechange', ()=>{
@@ -330,7 +329,13 @@
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
   function showToast(msg){ try{ if(state.notificationsEnabled) new Notification('Focus', {body:msg,icon:'./icons/icon-192.png'}); }catch{} }
-  function save(){ localStorage.setItem('tasks', JSON.stringify(state.tasks)); localStorage.setItem('events', JSON.stringify(state.events)); localStorage.setItem('totalFocusTime', state.totalFocusTime); localStorage.setItem('interventions', state.interventions); localStorage.setItem('tasksCompleted', state.tasksCompleted); }
+  function save(){
+    localStorage.setItem('tasks', JSON.stringify(state.tasks));
+    localStorage.setItem('events', JSON.stringify(state.events));
+    localStorage.setItem('totalFocusTime', state.totalFocusTime);
+    localStorage.setItem('interventions', state.interventions);
+    localStorage.setItem('tasksCompleted', state.tasksCompleted);
+  }
 
   // ---------------- Tabs (mobile) ----------------
   function switchView(name){
@@ -351,7 +356,6 @@
       if(p==='granted'){ state.notificationsEnabled=true; showToast('Focus reminders enabled'); }
     });
   }
-  // auto-enable toggle UI if already granted
   if('Notification' in window && Notification.permission==='granted') state.notificationsEnabled=true;
 
   // ---------------- Focus Timer ----------------
@@ -409,15 +413,14 @@
     const t = state.tasks.find(x=>x.id===id); if(!t) return; t.done=!t.done; if(t.done) state.tasksCompleted++; renderTasks(); updateStats(); save();
   }
   function toCalendar(id){
-    const t = state.tasks.find(x=>x.id===id); if(!t) return;
-    openQuickAdd(t.title);
+    const t = state.tasks.find(x=>x.id===id); if(!t) return; openQuickAdd(t.title);
   }
   function deleteTask(id){
     state.tasks = state.tasks.filter(x=>x.id!==id); renderTasks(); save();
   }
   function renderTasks(){
     const root = $('#taskList'); root.innerHTML='';
-    if(state.tasks.length===0){ root.innerHTML='<div class="muted" style="padding:8px">No tasks yet.</div>'; return;}
+    if(state.tasks.length===0){ root.innerHTML='<div class="small" style="padding:8px">No tasks yet.</div>'; return;}
     state.tasks.forEach(t=>{
       const el = document.createElement('div'); el.className='task';
       el.innerHTML = `
@@ -451,12 +454,10 @@
     grid.innerHTML = html + `<div class="nowline" id="nowLine" style="display:none"></div>`;
   }
   function renderEvents(){
-    // clear existing
     grid.querySelectorAll('.event').forEach(e=>e.remove());
     const dayKey = dayId(state.currentDay);
     const events = state.events.filter(ev=>ev.day===dayKey);
     events.forEach(ev=> placeEvent(ev));
-    // show now line if same day
     const now = new Date(); const show = dayId(now)===dayKey;
     const nl = $('#nowLine'); nl.style.display = show?'block':'none';
     if(show){
@@ -466,7 +467,7 @@
     $('#statTodayEvents').textContent = events.length;
   }
   function placeEvent(ev){
-    const startM = ev.start; const endM = ev.end;
+    const startM = ev.start, endM = ev.end;
     const top = startM * 56 / 60;
     const height = Math.max(30, (endM - startM) * 56 / 60);
     const el = document.createElement('div'); el.className='event';
@@ -476,30 +477,63 @@
         <div>${ev.title}</div>
         <div class="ev-time">${minToLabel(startM)}–${minToLabel(endM)}</div>
       </div>
-      <div class="ev-chip">Focus</div>
+      <div>
+        <button class="btn ghost" title="Edit" aria-label="Edit">✏️</button>
+        <button class="btn ghost" title="Delete" aria-label="Delete">🗑</button>
+      </div>
     `;
+    const [editBtn, delBtn] = el.querySelectorAll('button');
+    editBtn.addEventListener('click', (e)=>{ e.stopPropagation(); editEvent(ev.id); });
+    delBtn.addEventListener('click', (e)=>{ e.stopPropagation(); deleteEvent(ev.id); });
     grid.appendChild(el);
   }
   function minToLabel(m){ const h = Math.floor(m/60), mm = m%60; const ap = h<12?'a':'p'; const hh = h%12||12; return `${hh}:${String(mm).padStart(2,'0')}${ap}`; }
   function labelToMin(val){ const [H,M] = val.split(':').map(n=>+n); return H*60 + M; }
 
   function dayId(d){ const dt = new Date(d); dt.setHours(0,0,0,0); return dt.toISOString().slice(0,10); }
-  function shiftDay(n){ state.currentDay.setDate(state.currentDay.getDate()+n); setDayLabel(); renderEvents(); }
-  function goToday(){ state.currentDay = new Date(); setDayLabel(); renderEvents(); scrollToNow(); }
-  function scrollToNow(){ const dayKey = dayId(new Date()); if(dayId(state.currentDay)!==dayKey) return; const y = (new Date().getHours()*60 + new Date().getMinutes())*56/60 - 140; grid.scrollTo({top: Math.max(0,y), behavior:'smooth'}); }
+  function shiftDay(n){ state.currentDay.setDate(state.currentDay.getDate()+n); setDayLabel(); renderWeekStrip(); renderEvents(); }
+  function goToday(){ state.currentDay = new Date(); setDayLabel(); renderWeekStrip(); renderEvents(); scrollToNow(); }
+  function scrollToNow(){
+    const dayKey = dayId(new Date()); if(dayId(state.currentDay)!==dayKey) return;
+    const y = (new Date().getHours()*60 + new Date().getMinutes())*56/60 - 140;
+    grid.scrollTo({top: Math.max(0,y), behavior:'smooth'});
+  }
 
   function tapHour(e){
-    // Tap anywhere → open Quick Add with rounded start time
     const rect = grid.getBoundingClientRect();
     const y = e.clientY - rect.top + grid.scrollTop;
     const mins = Math.max(0, Math.min(23*60+59, Math.round((y/56)*60/15)*15)); // snap 15m
     openQuickAdd('', mins);
   }
 
-  // Quick Add
+  // Week strip
+  function startOfWeek(d){ const x = new Date(d); const day = x.getDay(); x.setHours(0,0,0,0); x.setDate(x.getDate() - day); return x; }
+  function sameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+  function renderWeekStrip(){
+    const root = $('#weekStrip'); if(!root) return;
+    const sow = startOfWeek(state.currentDay);
+    const today = new Date();
+    let html='';
+    for(let i=0;i<7;i++){
+      const d = new Date(sow); d.setDate(sow.getDate()+i);
+      const lab = d.toLocaleDateString([], { weekday:'short' });
+      const num = d.getDate();
+      const active = sameDay(d, state.currentDay) ? 'active' : '';
+      const todayMark = sameDay(d,today) ? '•' : '';
+      html += `<button class="daybtn ${active}" data-d="${d.toISOString()}"><span>${lab}${todayMark?'':''}</span><strong>${num}</strong></button>`;
+    }
+    root.innerHTML = html;
+    root.querySelectorAll('.daybtn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        state.currentDay = new Date(btn.getAttribute('data-d'));
+        setDayLabel(); renderWeekStrip(); renderEvents(); scrollToNow();
+      });
+    });
+  }
+
+  // Quick Add (new/edit)
   function openQuickAdd(prefillTitle='', startMin=null){
     $('#qa-title-input').value = prefillTitle || '';
-    // set default time to rounded next 15m or the tapped minute
     const base = startMin!=null ? startMin : Math.round(((new Date().getHours()*60 + new Date().getMinutes())+7.5)/15)*15;
     const hh = String(Math.floor(base/60)).padStart(2,'0'); const mm = String(base%60).padStart(2,'0');
     $('#qa-start').value = `${hh}:${mm}`;
@@ -515,55 +549,140 @@
   }
   function closeQuickAdd(){ closeSheet('#quickSheet'); }
 
+  function editEvent(evId){
+    const ev = state.events.find(e=>e.id===evId); if(!ev) return;
+    openQuickAdd(ev.title, ev.start);
+    $('#quickSheet').dataset.editId = evId;
+    $('#qa-title').textContent = 'Edit Event';
+  }
+  function deleteEvent(evId){
+    state.events = state.events.filter(e=>e.id!==evId); save(); renderEvents();
+  }
+  const _origSaveQuickAdd = saveQuickAdd;
+  saveQuickAdd = function(){
+    const editId = $('#quickSheet').dataset.editId;
+    const title = $('#qa-title-input').value.trim();
+    const t = $('#qa-start').value || '09:00';
+    const dur = Math.max(15, +($('#qa-dur').value||30));
+    const start = labelToMin(t), end = Math.min(24*60, start+dur);
+
+    if(editId){
+      const ev = state.events.find(e=>e.id===editId);
+      if(ev){ ev.title=title; ev.start=start; ev.end=end; ev.day=dayId(state.currentDay); }
+      $('#quickSheet').dataset.editId = '';
+      $('#qa-title').textContent = 'Quick Add';
+      closeQuickAdd(); save(); renderEvents(); return;
+    }
+    const ev = { id:crypto.randomUUID(), title, start, end, day: dayId(state.currentDay) };
+    state.events.push(ev); save(); closeQuickAdd(); renderEvents();
+  };
+  const _origCloseQuickAdd = closeQuickAdd;
+  closeQuickAdd = function(){ $('#quickSheet').dataset.editId=''; $('#qa-title').textContent='Quick Add'; _origCloseQuickAdd(); };
+
   // Sheets
   function openSheet(sel){ const s=$(sel); s.classList.add('open'); s.setAttribute('aria-hidden','false'); }
   function closeSheet(sel){ const s=$(sel); s.classList.remove('open'); s.setAttribute('aria-hidden','true'); }
 
-  // ---------------- Matrix actions ----------------
+  // Matrix actions
   function selectQuadrant(q){
     const names=['','DO NOW','SCHEDULE','DELEGATE','ELIMINATE'];
-    const tips=['',
-      'Urgent & important — do it immediately.',
-      'Important, not urgent — schedule time.',
-      'Urgent, not important — delegate it.',
-      'Not urgent/important — remove or limit.'
-    ];
+    const tips=['','Urgent & important — do it immediately.','Important, not urgent — schedule time.','Urgent, not important — delegate it.','Not urgent/important — remove or limit.'];
     showIntervention(`${names[q]}: ${tips[q]}`);
   }
 
-  // ---------------- Stats ----------------
+  // Stats
   function updateStats(){
     $('#focusTime').textContent = state.totalFocusTime;
     $('#interventions').textContent = state.interventions;
     $('#tasksCompleted').textContent = state.tasksCompleted;
   }
 
-  // ---------------- Network status ----------------
+  // Network status
   window.addEventListener('online', ()=>{ $('#offlineIndicator').style.display='none'; showToast('Back Online!'); try{ navigator.serviceWorker.ready.then(r=>r.sync.register('focus-data-sync')); }catch{} });
   window.addEventListener('offline', ()=>{ $('#offlineIndicator').style.display='inline-block'; });
 
+  // ---------------- Smarter in-app scroll nudge ----------------
+  const NUDGE_STORE_KEY = 'nudgeConfig';
+  const NUDGE_CFG = Object.assign(
+    { enabled:true, sensitivity:3, cooldownMin:1, cooldownUntil:0 },
+    JSON.parse(localStorage.getItem(NUDGE_STORE_KEY) || '{}')
+  );
+  function sensPreset(level){
+    switch(+level){
+      case 1: return { windowMs:1200, minEvents:30,  minPx:5000 };
+      case 2: return { windowMs:1000, minEvents:18,  minPx:3200 };
+      case 3: return { windowMs:900,  minEvents:12,  minPx:2200 };
+      case 4: return { windowMs:800,  minEvents:9,   minPx:1500 };
+      default:return { windowMs:700,  minEvents:6,   minPx:900  };
+    }
+  }
+  let burst = { startY: 0, px:0, events:0, timer:null, startTs:0, lastScrollY: window.scrollY };
+  function resetBurst(){ burst = { startY: window.scrollY, px:0, events:0, timer:null, startTs:0, lastScrollY: window.scrollY }; }
+  function maybeNudge(){
+    if(!NUDGE_CFG.enabled) return;
+    const now = Date.now();
+    if(now < (NUDGE_CFG.cooldownUntil||0)) return;
+    const { minEvents, minPx } = sensPreset(NUDGE_CFG.sensitivity);
+    const deltaDoc = Math.abs(window.scrollY - burst.startY);
+    if (burst.events >= minEvents && burst.px >= minPx && deltaDoc >= Math.min(600, window.innerHeight*0.8)) {
+      showIntervention('Rapid scrolling detected! Ready to refocus?');
+      state.interventions++; updateStats(); save();
+      NUDGE_CFG.cooldownUntil = Date.now() + Math.max(0, (NUDGE_CFG.cooldownMin||1)) * 60 * 1000;
+      localStorage.setItem(NUDGE_STORE_KEY, JSON.stringify(NUDGE_CFG));
+      resetBurst();
+    }
+  }
+  addEventListener('wheel', (e) => {
+    if(!NUDGE_CFG.enabled) return;
+    const ay = Math.abs(e.deltaY);
+    if (ay < 10) return; // ignore tiny jitters
+    const { windowMs } = sensPreset(NUDGE_CFG.sensitivity);
+    if(!burst.startTs) { burst.startTs = Date.now(); burst.startY = window.scrollY; }
+    burst.px += ay; burst.events++;
+    clearTimeout(burst.timer);
+    burst.timer = setTimeout(()=> { maybeNudge(); resetBurst(); }, windowMs);
+  }, { passive:true });
+
+  // Settings sheet
+  function openSettings(){
+    $('#nudgeEnabled').checked = !!NUDGE_CFG.enabled;
+    $('#nudgeSensitivity').value = +NUDGE_CFG.sensitivity || 3;
+    $('#nudgeCooldown').value = +NUDGE_CFG.cooldownMin || 1;
+    $('#sensLabel').textContent = ` (level ${$('#nudgeSensitivity').value})`;
+    openSheet('#settingsSheet');
+  }
+  function closeSettings(){ closeSheet('#settingsSheet'); }
+  $('#nudgeSensitivity')?.addEventListener('input', () => {
+    $('#sensLabel').textContent = ` (level ${$('#nudgeSensitivity').value})`;
+  });
+  function saveSettings(){
+    NUDGE_CFG.enabled = $('#nudgeEnabled').checked;
+    NUDGE_CFG.sensitivity = +$('#nudgeSensitivity').value;
+    NUDGE_CFG.cooldownMin = Math.max(0, +($('#nudgeCooldown').value||0));
+    localStorage.setItem(NUDGE_STORE_KEY, JSON.stringify(NUDGE_CFG));
+    closeSettings();
+  }
+
   // ---------------- Boot ----------------
   function boot(){
-    // Hours grid
     hoursMarkup();
     setDayLabel();
+    renderWeekStrip();
     renderTasks();
     renderEvents();
     updateStats();
-    // Scroll to now after render
     setTimeout(scrollToNow, 250);
 
-    // PWA shortcut actions
     const action = new URLSearchParams(location.search).get('action');
     if(action==='focus') setTimeout(quickIntervention, 600);
     else if(action==='start') setTimeout(startFocusSession, 600);
     else if(action==='emergency') setTimeout(emergencyRefocus, 400);
 
-    // Gentle nudge every 15m if notifications enabled
-    setInterval(()=>{ if(state.notificationsEnabled) showToast('Focus check — what are you working on?'); }, 15*60*1000);
+    // Move the "now" line every minute
+    setInterval(()=>{ if(dayId(new Date())===dayId(state.currentDay)) renderEvents(); }, 60*1000);
 
-    // Simple page scroll (still helpful if no extension)
-    let sc=0, t=null; addEventListener('scroll',()=>{ sc++; clearTimeout(t); t=setTimeout(()=>{ if(sc>12) setTimeout(()=>showIntervention('Rapid scrolling detected!'), 600); sc=0; }, 800); }, {passive:true});
+    // Gentle reminder every 15m if notifications enabled
+    setInterval(()=>{ if(state.notificationsEnabled) showToast('Focus check — what are you working on?'); }, 15*60*1000);
 
     // Ask for notifications the first time
     if('Notification' in window && Notification.permission!=='granted'){
@@ -571,6 +690,24 @@
     }
   }
   document.addEventListener('DOMContentLoaded', boot);
+
+  // Expose for inline handlers
+  window.switchView=switchView;
+  window.startFocusSession=startFocusSession;
+  window.setFocusReminder=setFocusReminder;
+  window.quickIntervention=quickIntervention;
+  window.emergencyRefocus=emergencyRefocus;
+  window.selectQuadrant=selectQuadrant;
+  window.addTask=addTask;
+  window.openQuickAdd=openQuickAdd;
+  window.saveQuickAdd=saveQuickAdd;
+  window.closeQuickAdd=closeQuickAdd;
+  window.shiftDay=shiftDay;
+  window.goToday=goToday;
+  window.tapHour=tapHour;
+  window.openSettings=openSettings;
+  window.closeSettings=closeSettings;
+  window.saveSettings=saveSettings;
   </script>
 </body>
 </html>
