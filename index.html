@@ -2,712 +2,590 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Focus Intervention</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f172a" />
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.json" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-192.png" />
-  <!-- Icons -->
-  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png" />
+  <title>Focus Intervention — Planner, Tasks & Activity</title>
+
+  <!-- PWA-friendly metas -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#0ea5e9">
+
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50:'#ecfeff',100:'#cffafe',200:'#a5f3fc',300:'#67e8f9',400:'#22d3ee',
+              500:'#06b6d4',600:'#0891b2',700:'#0e7490',800:'#155e75',900:'#164e63'
+            }
+          },
+          boxShadow: {
+            soft: '0 8px 24px rgba(2, 6, 23, 0.08)'
+          }
+        }
+      }
+    }
+  </script>
 
   <style>
-    :root{
-      --bg:#0f172a; --bg-2:#111827; --card:#162238; --muted:#94a3b8; --brand:#3b82f6; --brand-2:#1d4ed8;
-      --ok:#10b981; --warn:#f59e0b; --danger:#ef4444; --ring:#334155;
-      --radius:14px; --space:16px; --tap:44px;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;
-      background:linear-gradient(135deg, #0f172a, #1e293b); color:#fff;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    /* Layout */
-    .app{min-height:100%; display:flex; flex-direction:column; padding-bottom: calc(56px + env(safe-area-inset-bottom));}
-    header{
-      position:sticky; top:0; z-index:5;
-      background:rgba(15,23,42,.85); backdrop-filter: blur(8px);
-      padding: max(12px, env(safe-area-inset-top)) var(--space) 10px;
-      border-bottom:1px solid #1f2a44;
-    }
-    .brand{display:flex; align-items:center; gap:10px}
-    .dot{width:10px; height:10px; border-radius:50%; background:var(--danger); box-shadow:0 0 0 0 rgba(16,185,129,.4); transition:.3s}
-    .dot.active{background:var(--ok); animation:pulse 2s infinite}
-    .hdr-right{margin-left:auto; display:flex; gap:10px; align-items:center; color:var(--muted); font-size:12px}
-
-    .content{flex:1; padding:12px var(--space); max-width:1000px; width:100%; margin:0 auto}
-    .grid{display:grid; gap:12px}
-    @media(min-width:900px){
-      .grid{grid-template-columns: 1.1fr .9fr}
-      .section{min-height:520px}
-    }
-
-    .section{
-      background:rgba(15,23,42,.6); border:1px solid var(--ring);
-      border-radius:var(--radius); padding:12px;
-    }
-    .section h2{margin:0 0 10px; font-size:1.05rem}
-
-    /* Tabs (mobile) */
-    .tabbar{
-      position:fixed; bottom:0; left:0; right:0; z-index:9;
-      background:rgba(15,23,42,.96); backdrop-filter: blur(8px);
-      border-top:1px solid #1f2a44; height:56px; padding:6px max(10px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-right));
-      display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
-    }
-    .tabbtn{
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      min-height:44px; border-radius:12px; color:#cbd5e1; border:1px solid transparent; font-size:11px;
-    }
-    .tabbtn.active{color:#fff; border-color:#28406d; background:#12203a}
-    @media(min-width:900px){ .tabbar{display:none} }
-
-    /* Buttons & inputs */
-    .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px;
-      padding:10px 14px; min-height:var(--tap); border-radius:10px; border:1px solid #2a3a57; background:linear-gradient(135deg,#28406d,#1b2e52); color:#fff; cursor:pointer; font-weight:600}
-    .btn:active{transform: translateY(1px)}
-    .btn.ok{background:linear-gradient(135deg,#16a34a,#0f7a3a); border-color:#0f7a3a}
-    .btn.warn{background:linear-gradient(135deg,#f59e0b,#b45309); border-color:#b45309}
-    .btn.danger{background:linear-gradient(135deg,#ef4444,#b91c1c); border-color:#b91c1c}
-    .btn.ghost{background:transparent}
-    .row{display:flex; gap:8px; flex-wrap:wrap}
-    .chip{font-size:11px; padding:3px 8px; background:#173054; border:1px solid #28406d; border-radius:999px; color:#cbd5e1}
-
-    /* Matrix */
-    .matrix{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-    @media(max-width:899px){ .matrix{grid-template-columns:1fr} }
-    .quad{padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,.15); cursor:pointer}
-    .q1{background:linear-gradient(135deg,#b91c1c,#ef4444)}
-    .q2{background:linear-gradient(135deg,#059669,#10b981)}
-    .q3{background:linear-gradient(135deg,#d97706,#f59e0b)}
-    .q4{background:linear-gradient(135deg,#6366f1,#4338ca)}
-    .quad h3{margin:0 0 6px; font-size:1rem}
-    .quad p{margin:0; opacity:.9; font-size:.9rem}
-
-    /* Tasks */
-    .task-add{display:flex; gap:8px; margin:10px 0}
-    .input{flex:1; padding:12px; min-height:var(--tap); border-radius:10px; border:1px solid #2a3a57; background:#111c30; color:#fff; font-size:16px;}
-    .tasklist{display:grid; gap:8px; max-height:360px; overflow:auto; padding-right:2px}
-    .task{display:flex; align-items:center; gap:8px; padding:10px; border:1px solid #263754; background:#0f1a30; border-radius:10px}
-    .task .title{flex:1}
-
-    /* Planner (24h) */
-    .planner{border:1px solid #263754; border-radius:12px; overflow:hidden; background:#0e1729; display:flex; flex-direction:column; height:520px;}
-    .planner-head{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px; border-bottom:1px solid #1f2a44; position:sticky; top:0; background:#0e1729; z-index:3;}
-    .planner-day{font-weight:700}
-    .weekstrip{display:flex; gap:6px; overflow:auto; -webkit-overflow-scrolling:touch; padding:6px 8px; border-bottom:1px solid #1f2a44; background:#0e1729; position:sticky; top:44px; z-index:2;}
-    .daybtn{min-width:48px; padding:8px 10px; border-radius:10px; border:1px solid #263754; background:#0f1a30; color:#cbd5e1; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:12px; cursor:pointer;}
-    .daybtn strong{font-size:13px; color:#e5edf9}
-    .daybtn.active{border-color:#2b4b80; background:#112241}
-
-    .planner-grid{position:relative; flex:1; overflow:auto; -webkit-overflow-scrolling: touch; scroll-behavior:smooth; background: linear-gradient(#1f2a44 1px, transparent 1px) 0 0/100% 56px;}
-    .hour{position:relative; height:56px; padding-left:58px; display:flex; align-items:flex-start; color:#8ea3c2; font-size:12px}
-    .hour::before{content:attr(data-h); position:absolute; left:8px; top:6px; width:42px; text-align:right; opacity:.8;}
-    .nowline{position:absolute; left:0; right:0; height:2px; background:var(--danger); z-index:1; box-shadow:0 0 6px rgba(239,68,68,.7);}
-    .event{position:absolute; left:58px; right:8px; border:1px solid #2c4a7a; background:rgba(59,130,246,.2); border-left:3px solid var(--brand); border-radius:10px; padding:6px 8px; color:#e5edf9; font-size:13px; display:flex; justify-content:space-between; gap:8px;}
-    .ev-time{font-size:11px; color:#c7d2fe}
-    .ev-chip{font-size:10px; padding:2px 6px; background:#0f2549; border:1px solid #2b4b80; border-radius:999px}
-
-    /* Sheets */
-    .sheet{position:fixed; inset:0; background:rgba(0,0,0,.65); display:none; align-items:flex-end; justify-content:center; z-index:20;}
-    .sheet.open{display:flex}
-    .sheet-card{width:100%; max-width:560px; background:#0e1729; border-top-left-radius:16px; border-top-right-radius:16px; border:1px solid #1f2a44; padding:14px 14px max(14px, env(safe-area-inset-bottom)); animation:rise .2s ease-out;}
-    .sheet h3{margin:0 0 8px}
-    .form-row{display:flex; gap:8px; margin:8px 0}
-    .select,.time{height:44px}
-    .select,.time,.input{appearance:none}
-    .switch{display:flex; align-items:center; gap:8px}
-    .range{width:100%}
-    .small{font-size:12px; color:#93a5c4}
-
-    /* Floating action */
-    .fab{position:fixed; right:16px; bottom: calc(70px + env(safe-area-inset-bottom)); width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,var(--brand),var(--brand-2)); display:flex; align-items:center; justify-content:center; border:none; color:#fff; font-size:22px; z-index:8; box-shadow:0 8px 28px rgba(59,130,246,.45);}
-
-    /* Stats */
-    .stats{display:grid; grid-template-columns: repeat(3,1fr); gap:8px}
-    .pill{background:#0e1729; border:1px solid #263754; border-radius:12px; text-align:center; padding:10px}
-    .num{font-size:1.2rem; color:var(--brand); font-weight:800}
-
-    /* Animations */
-    @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.0)} 50%{box-shadow:0 0 0 8px rgba(16,185,129,.12)}}
-    @keyframes rise{from{transform:translateY(12px);opacity:0} to{transform:none;opacity:1}}
+    .no-select { user-select: none; -webkit-user-select: none; }
   </style>
 </head>
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+  <!-- Header -->
+  <header class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <h1 class="text-xl font-bold tracking-tight text-brand-700">Focus Intervention</h1>
+      <nav class="flex items-center gap-2 text-sm">
+        <button class="tab-btn px-3 py-1.5 rounded-lg hover:bg-gray-100" data-tab-target="activity">Activity</button>
+        <button class="tab-btn px-3 py-1.5 rounded-lg hover:bg-gray-100" data-tab-target="planner">Day Planner</button>
+        <button class="tab-btn px-3 py-1.5 rounded-lg hover:bg-gray-100" data-tab-target="tasks">Tasks</button>
+      </nav>
+    </div>
+  </header>
 
-<body>
-  <div class="app">
-    <header>
-      <div class="brand">
-        <div id="focusIndicator" class="dot" aria-hidden="true"></div>
-        <div>
-          <div style="font-weight:800">Focus Intervention</div>
-          <div id="statusText" style="font-size:12px;color:#93a5c4">Monitoring focus…</div>
-        </div>
-        <div class="hdr-right">
-          <span id="timerDisplay">00:00</span>
-          <span id="offlineIndicator" class="chip" style="display:none;background:#3c1420;border-color:#702a3a;color:#fecaca">Offline</span>
-          <button class="btn ghost" onclick="openSettings()" title="Settings">⚙️</button>
-        </div>
-      </div>
-    </header>
+  <main class="max-w-6xl mx-auto px-4 py-6 space-y-8">
 
-    <main class="content">
-      <div id="view-matrix" class="section">
-        <h2>Eisenhower Matrix</h2>
-        <div class="matrix">
-          <button class="quad q1" onclick="selectQuadrant(1)"><h3>🔥 DO NOW</h3><p>Urgent + Important</p></button>
-          <button class="quad q2" onclick="selectQuadrant(2)"><h3>📅 SCHEDULE</h3><p>Important + Not Urgent</p></button>
-          <button class="quad q3" onclick="selectQuadrant(3)"><h3>👥 DELEGATE</h3><p>Urgent + Not Important</p></button>
-          <button class="quad q4" onclick="selectQuadrant(4)"><h3>🗑️ ELIMINATE</h3><p>Not Urgent + Not Important</p></button>
+    <!-- ACTIVITY TAB -->
+    <section id="tab-activity" data-tab-panel class="space-y-4">
+      <!-- Focus Timer card -->
+      <div class="rounded-2xl p-4 bg-white border shadow-soft">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold text-slate-800">Focus Timer</h2>
+          <span class="text-xs text-gray-500">Drift-free (wall-clock)</span>
         </div>
-
-        <div class="row" style="margin-top:10px">
-          <button class="btn ok" onclick="startFocusSession()">🎯 Start Focus</button>
-          <button class="btn warn" onclick="setFocusReminder()">⏰ Reminders</button>
-          <button class="btn" onclick="quickIntervention()">🚨 I'm Scrolling!</button>
-          <button class="btn danger" onclick="emergencyRefocus()">💥 Emergency</button>
+        <div id="focus-display" class="text-4xl font-mono tracking-widest my-3">00:00:00</div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="focus-start" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Start</button>
+          <button id="focus-pause" class="px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600">Pause</button>
+          <button id="focus-reset" class="px-3 py-1.5 rounded-lg bg-rose-600 text-white hover:bg-rose-700">Reset</button>
         </div>
-
-        <div class="stats" style="margin-top:12px">
-          <div class="pill"><div class="num" id="focusTime">0</div><div class="muted">Minutes Focused</div></div>
-          <div class="pill"><div class="num" id="interventions">0</div><div class="muted">Interventions</div></div>
-          <div class="pill"><div class="num" id="tasksCompleted">0</div><div class="muted">Tasks Done</div></div>
-        </div>
+        <p class="text-xs text-gray-500 mt-2">Sessions are logged when you pause/reset (≥ 1 min).</p>
       </div>
 
-      <div id="view-tasks" class="section">
-        <h2>Tasks</h2>
-        <div class="task-add">
-          <input id="taskInput" class="input" placeholder="Add task… e.g. Draft report due:2025-09-30 #work P2" />
-          <button class="btn ok" onclick="addTask()">Add</button>
-        </div>
-        <div id="taskList" class="tasklist" role="list"></div>
-      </div>
+      <!-- Activity: Productivity Summary -->
+      <section id="productivity">
+        <div class="rounded-2xl p-4 bg-gradient-to-r from-sky-500/10 via-cyan-500/10 to-fuchsia-500/10 border border-sky-200/60">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-bold text-sky-700">Productivity Summary</h2>
+            <span id="prod-trend-badge" class="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold">+0%</span>
+          </div>
 
-      <div id="view-calendar" class="section">
-        <h2 style="margin-bottom:6px">Day Planner</h2>
-        <div class="planner" id="planner">
-          <div class="planner-head">
-            <button class="btn ghost" onclick="shiftDay(-1)">◀</button>
-            <div class="planner-day" id="plannerDayLabel">Today</div>
-            <div class="row">
-              <button class="btn ghost" onclick="goToday()">Today</button>
-              <button class="btn ghost" onclick="shiftDay(1)">▶</button>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="rounded-xl p-3 bg-white border">
+              <div class="text-xs text-gray-500">Tasks (via app)</div>
+              <div id="prod-tasks-completed" class="text-2xl font-bold">0</div>
+            </div>
+            <div class="rounded-xl p-3 bg-white border">
+              <div class="text-xs text-gray-500">Focus Hours</div>
+              <div id="prod-focus-hours" class="text-2xl font-bold">0.0</div>
+            </div>
+            <div class="rounded-xl p-3 bg-white border">
+              <div class="text-xs text-gray-500">Sessions</div>
+              <div id="prod-sessions" class="text-2xl font-bold">0</div>
+            </div>
+            <div class="rounded-xl p-3 bg-white border">
+              <div class="text-xs text-gray-500">This Week Streak</div>
+              <div id="prod-streak" class="text-2xl font-bold">0</div>
             </div>
           </div>
 
-          <!-- Week strip -->
-          <div class="weekstrip" id="weekStrip"></div>
+          <div class="mt-4">
+            <div class="flex items-center justify-between text-sm mb-1">
+              <span class="font-medium text-gray-700">Progress vs last week</span>
+              <span id="prod-trend" class="text-gray-600">0%</span>
+            </div>
+            <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+              <div id="prod-progress-bar" class="h-2 w-0 bg-gradient-to-r from-sky-500 via-cyan-500 to-fuchsia-500 transition-[width] duration-700"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
 
-          <div class="planner-grid" id="plannerGrid" onclick="tapHour(event)"></div>
+    <!-- DAY PLANNER TAB -->
+    <section id="tab-planner" data-tab-panel class="hidden">
+      <div class="rounded-2xl p-4 bg-gradient-to-r from-indigo-500/10 via-violet-500/10 to-fuchsia-500/10 border border-indigo-200/60">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-bold text-indigo-700">Day Planner</h2>
+          <span id="planner-day" class="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 font-semibold">Today</span>
+        </div>
+
+        <!-- Replace this scaffolding with your existing planner content if you have it -->
+        <div id="planner-grid" class="grid md:grid-cols-2 gap-3 no-select">
+          <div class="rounded-xl p-3 bg-white border">
+            <h3 class="font-semibold mb-1">Morning</h3>
+            <ul id="planner-morning" class="text-sm text-gray-700 space-y-1"></ul>
+          </div>
+          <div class="rounded-xl p-3 bg-white border">
+            <h3 class="font-semibold mb-1">Afternoon</h3>
+            <ul id="planner-afternoon" class="text-sm text-gray-700 space-y-1"></ul>
+          </div>
+          <div class="rounded-xl p-3 bg-white border md:col-span-2">
+            <h3 class="font-semibold mb-1">Evening</h3>
+            <ul id="planner-evening" class="text-sm text-gray-700 space-y-1"></ul>
+          </div>
         </div>
       </div>
+    </section>
 
-      <div id="view-stats" class="section">
-        <h2>Activity</h2>
-        <div class="stats" style="margin-top:12px">
-          <div class="pill"><div class="num" id="statTotalTasks">0</div><div class="muted">Total Tasks</div></div>
-          <div class="pill"><div class="num" id="statTodayEvents">0</div><div class="muted">Today’s Events</div></div>
-          <div class="pill"><div class="num" id="statFocusStreak">0</div><div class="muted">Focus Streak (days)</div></div>
+    <!-- TASKS TAB -->
+    <section id="tab-tasks" data-tab-panel class="hidden space-y-4">
+      <div class="rounded-2xl p-4 bg-white border shadow-soft">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold">Tasks</h2>
+          <div class="flex items-center gap-2">
+            <input id="new-task-title" class="border rounded-lg px-3 py-1.5 text-sm" placeholder="Add a task & press Enter" />
+          </div>
         </div>
+        <ul id="task-list" class="mt-3 divide-y">
+          <!-- active tasks populate here -->
+        </ul>
       </div>
-    </main>
 
-    <!-- Bottom Tab Bar -->
-    <nav class="tabbar" role="tablist" aria-label="Primary">
-      <button class="tabbtn active" data-view="matrix" onclick="switchView('matrix')">🏹<span>Matrix</span></button>
-      <button class="tabbtn" data-view="tasks" onclick="switchView('tasks')">✅<span>Tasks</span></button>
-      <button class="tabbtn" data-view="calendar" onclick="switchView('calendar')">📅<span>Calendar</span></button>
-      <button class="tabbtn" data-view="stats" onclick="switchView('stats')">📈<span>Stats</span></button>
-    </nav>
+      <!-- Completed This Week -->
+      <section id="weekly-tasks">
+        <div class="rounded-2xl p-4 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-sky-500/10 border border-emerald-200/60">
+          <h2 class="text-lg font-bold text-emerald-700 mb-2">Tasks Completed This Week</h2>
+          <ul id="weekly-completed-list" class="list-disc list-inside text-sm text-gray-800 space-y-1">
+            <!-- populated by JS -->
+          </ul>
+        </div>
+      </section>
+    </section>
 
-    <!-- Floating Add -->
-    <button class="fab" title="Quick add" onclick="openQuickAdd()">＋</button>
-  </div>
+  </main>
 
-  <!-- Quick Add Sheet -->
-  <div class="sheet" id="quickSheet" aria-hidden="true">
-    <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="qa-title">
-      <h3 id="qa-title">Quick Add</h3>
-      <input id="qa-title-input" class="input" placeholder="Title" />
-      <div class="form-row">
-        <input id="qa-start" type="time" class="input time" />
-        <input id="qa-dur" type="number" class="input" min="15" step="15" value="30" placeholder="Duration (min)" />
-      </div>
-      <div class="row" style="justify-content:flex-end">
-        <button class="btn ghost" onclick="closeQuickAdd()">Cancel</button>
-        <button class="btn ok" onclick="saveQuickAdd()">Save</button>
-      </div>
+  <!-- Footer -->
+  <footer class="border-t">
+    <div class="max-w-6xl mx-auto px-4 py-4 text-xs text-gray-500">
+      <span>© <span id="year"></span> Focus Intervention</span>
     </div>
-  </div>
-
-  <!-- Settings Sheet -->
-  <div class="sheet" id="settingsSheet" aria-hidden="true">
-    <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-      <h3 id="settings-title">Settings</h3>
-
-      <div class="switch" style="margin:8px 0">
-        <input id="nudgeEnabled" type="checkbox">
-        <label for="nudgeEnabled"><strong>Enable in-app scroll nudge</strong></label>
-      </div>
-      <div class="small">If you use the browser extension, you can turn this off to avoid double nudges.</div>
-
-      <div style="margin-top:10px">
-        <label for="nudgeSensitivity"><strong>Sensitivity</strong> <span id="sensLabel" class="small"></span></label>
-        <input id="nudgeSensitivity" class="range" type="range" min="1" max="5" step="1">
-        <div class="small">1 = least sensitive, 5 = most sensitive.</div>
-      </div>
-
-      <div style="margin-top:10px">
-        <label for="nudgeCooldown"><strong>Cooldown (minutes)</strong></label>
-        <input id="nudgeCooldown" class="input" type="number" min="0" step="1" value="1">
-        <div class="small">Minimum time between two alerts.</div>
-      </div>
-
-      <div class="row" style="justify-content:flex-end; margin-top:12px">
-        <button class="btn ghost" onclick="closeSettings()">Close</button>
-        <button class="btn ok" onclick="saveSettings()">Save</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Intervention Sheet -->
-  <div class="sheet" id="interventionPopup" aria-hidden="true">
-    <div class="sheet-card" role="dialog" aria-modal="true">
-      <h3>⚠️ FOCUS BREAK!</h3>
-      <p id="interventionMessage" style="color:#cbd5e1;margin:8px 0 12px">Time to stop scrolling and get back to what matters!</p>
-      <input type="text" class="input" id="currentTask" placeholder="What should you be working on right now?" />
-      <div class="row" style="margin-top:10px">
-        <button class="btn ok" onclick="commitToTask()">✅ Do This Now</button>
-        <button class="btn warn" onclick="setBreakTimer()">⏳ 5-min Break</button>
-        <button class="btn danger" onclick="closeIntervention()">❌ Ignore</button>
-      </div>
-    </div>
-  </div>
+  </footer>
 
   <script>
-  // ---------------- State ----------------
-  const state = {
-    isActive:false, startTime:null,
-    totalFocusTime: +localStorage.getItem('totalFocusTime')||0,
-    interventions: +localStorage.getItem('interventions')||0,
-    tasksCompleted: +localStorage.getItem('tasksCompleted')||0,
-    notificationsEnabled: false,
-    tasks: JSON.parse(localStorage.getItem('tasks')||'[]'),
-    events: JSON.parse(localStorage.getItem('events')||'[]'), // {id,title,start,end,day}
-    view: 'matrix',
-    currentDay: new Date()
-  };
+    // ---------------------------
+    // CONFIG / HOOKS
+    // ---------------------------
+    const HOOKS = {
+      tabs: {
+        activityBtn: '[data-tab-target="activity"]',
+        plannerBtn:  '[data-tab-target="planner"]',
+        tasksBtn:    '[data-tab-target="tasks"]',
+        activity:    '#tab-activity',
+        planner:     '#tab-planner',
+        tasks:       '#tab-tasks'
+      },
+      storage: {
+        tasks: 'fi_tasks',
+        focusSessions: 'fi_focus_sessions',
+        timer: 'fi_focus_timer_v1'
+      }
+    };
 
-  // ---------------- PWA SW ----------------
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./service-worker.js').then(reg=>{
-        reg.addEventListener('updatefound', ()=>{
-          const nw = reg.installing;
-          nw?.addEventListener('statechange', ()=>{
-            if (nw.state==='installed' && navigator.serviceWorker.controller){
-              showToast('🔄 App Update Available — pull to refresh or reopen to update.');
-            }
-          });
+    // Your Todoist iCal proxy (Cloudflare Worker)
+    const TODOIST_ICS_PROXY = 'https://fi-todoist-ical-proxy.mbps.workers.dev';
+
+    // ---------------------------
+    // TAB ROUTER
+    // ---------------------------
+    (function Tabs() {
+      function show(id) {
+        document.querySelectorAll('[data-tab-panel]').forEach(p => p.classList.add('hidden'));
+        const el = document.querySelector(id);
+        if (el) el.classList.remove('hidden');
+        if (id === HOOKS.tabs.activity) updateProductivity();
+        if (id === HOOKS.tabs.tasks) renderWeeklyCompletedTasks();
+      }
+      document.addEventListener('click', (e) => {
+        const t = e.target.closest('.tab-btn');
+        if (!t) return;
+        const target = t.getAttribute('data-tab-target');
+        if (target === 'activity') show(HOOKS.tabs.activity);
+        if (target === 'planner')  show(HOOKS.tabs.planner);
+        if (target === 'tasks')    show(HOOKS.tabs.tasks);
+      });
+      document.addEventListener('DOMContentLoaded', () => show(HOOKS.tabs.activity));
+    })();
+
+    // ---------------------------
+    // STORAGE & TASK HELPERS
+    // ---------------------------
+    function loadJSON(key, fallback) { try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch { return fallback; } }
+    function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+
+    function getAllTasks() { return loadJSON(HOOKS.storage.tasks, []); }
+    function setAllTasks(tasks) { saveJSON(HOOKS.storage.tasks, tasks); }
+
+    function addTask(title) {
+      const tasks = getAllTasks();
+      const t = { id: crypto.randomUUID(), title, createdAt: new Date().toISOString(), completedAt: null, completedViaApp: true };
+      tasks.unshift(t);
+      setAllTasks(tasks);
+      renderTasks();
+      updateProductivity();
+      return t;
+    }
+    function toggleTask(id) {
+      const tasks = getAllTasks();
+      const t = tasks.find(x => x.id === id);
+      if (!t) return;
+      if (t.completedAt) {
+        t.completedAt = null;
+      } else {
+        t.completedAt = new Date().toISOString();
+        t.completedViaApp = true;
+      }
+      setAllTasks(tasks);
+      renderTasks();
+      updateProductivity();
+      renderWeeklyCompletedTasks();
+    }
+    function getCompletedTasks() { return getAllTasks().filter(t => t.completedAt); }
+    function getCompletedTasksWithinDays(days=7) {
+      const since = Date.now() - days*24*60*60*1000;
+      return getCompletedTasks().filter(t => (new Date(t.completedAt).getTime() >= since));
+    }
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('task-list');
+      if (!list) return;
+      const tasks = getAllTasks();
+      list.innerHTML = '';
+      tasks.forEach(t => {
+        const li = document.createElement('li');
+        li.className = 'py-2 flex items-start gap-3';
+        li.innerHTML = `
+          <input type="checkbox" class="mt-1 h-4 w-4" ${t.completedAt ? 'checked' : ''} data-task="${t.id}">
+          <div class="flex-1">
+            <div class="text-sm ${t.completedAt ? 'line-through text-gray-400' : 'text-gray-800'}">${t.title}</div>
+            <div class="text-[11px] text-gray-500">${t.completedAt ? 'Completed ' + formatDate(t.completedAt) : 'Created ' + formatDate(t.createdAt)}</div>
+          </div>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target && e.target.id === 'new-task-title' && e.key === 'Enter') {
+        const v = e.target.value.trim();
+        if (v) { addTask(v); e.target.value = ''; }
+      }
+    });
+    document.addEventListener('change', (e) => {
+      const id = e.target && e.target.getAttribute && e.target.getAttribute('data-task');
+      if (id) toggleTask(id);
+    });
+
+    // ---------------------------
+    // FOCUS SESSIONS
+    // ---------------------------
+    function getFocusSessions() { return loadJSON(HOOKS.storage.focusSessions, []); }
+    function setFocusSessions(arr) { saveJSON(HOOKS.storage.focusSessions, arr); }
+    function logFocusSession(startISO, endISO) {
+      const durationMs = new Date(endISO) - new Date(startISO);
+      if (durationMs <= 0) return;
+      const sessions = getFocusSessions();
+      sessions.push({ start: startISO, end: endISO, durationMs });
+      setFocusSessions(sessions);
+    }
+    function getFocusSessionsWithinDays(days=7) {
+      const since = Date.now() - days*24*60*60*1000;
+      return getFocusSessions().filter(s => new Date(s.start).getTime() >= since);
+    }
+    function getFocusHoursThisWeek() {
+      const sessions = getFocusSessionsWithinDays(7);
+      const totalMs = sessions.reduce((a, s) => a + (s.durationMs || 0), 0);
+      return totalMs / 3600000;
+    }
+
+    // ---------------------------
+    // PRODUCTIVITY RENDER
+    // ---------------------------
+    function updateProductivity() {
+      const tasks = getCompletedTasksWithinDays(7);
+      const tasksViaApp = tasks.filter(t => t.completedViaApp !== false);
+      const sessions = getFocusSessionsWithinDays(7);
+      const hours = getFocusHoursThisWeek();
+
+      const elTasks = document.getElementById('prod-tasks-completed');
+      const elHours = document.getElementById('prod-focus-hours');
+      const elSessions = document.getElementById('prod-sessions');
+      const elStreak = document.getElementById('prod-streak');
+      const elTrend = document.getElementById('prod-trend');
+      const elBadge = document.getElementById('prod-trend-badge');
+      const elBar = document.getElementById('prod-progress-bar');
+
+      if (elTasks) elTasks.textContent = String(tasksViaApp.length);
+      if (elHours) elHours.textContent = hours.toFixed(1);
+      if (elSessions) elSessions.textContent = String(sessions.length);
+
+      const byDay = new Map();
+      for (const s of sessions) {
+        const k = new Date(s.start).toDateString();
+        byDay.set(k, (byDay.get(k) || 0) + (s.durationMs || 0));
+      }
+      const streak = Array.from(byDay.values()).filter(ms => ms >= 25*60*1000).length;
+      if (elStreak) elStreak.textContent = String(streak);
+
+      const now = Date.now();
+      const prevStart = now - 14*24*60*60*1000;
+      const prevEnd   = now - 7*24*60*60*1000;
+      const prev = getFocusSessions().filter(s => {
+        const ts = new Date(s.start).getTime();
+        return ts >= prevStart && ts < prevEnd;
+      });
+      const prevMs = prev.reduce((a, s) => a + (s.durationMs || 0), 0);
+      const prevH = prevMs / 3600000;
+
+      const delta = (hours - prevH);
+      const pct = prevH > 0 ? Math.round((delta / prevH) * 100) : (hours > 0 ? 100 : 0);
+      const pctLabel = (pct >= 0 ? `+${pct}` : `${pct}`) + '%';
+
+      if (elTrend) elTrend.textContent = pctLabel;
+      if (elBadge) {
+        elBadge.textContent = pctLabel;
+        elBadge.className = 'text-xs px-2 py-1 rounded-full font-semibold ' + (pct >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700');
+      }
+      if (elBar) {
+        const goal = 10; // hours/week
+        const w = Math.max(0, Math.min(100, Math.round((hours/goal)*100)));
+        elBar.style.width = w + '%';
+      }
+    }
+
+    function renderWeeklyCompletedTasks() {
+      const list = document.getElementById('weekly-completed-list');
+      if (!list) return;
+      list.innerHTML = '';
+      const tasks = getCompletedTasksWithinDays(7).sort((a,b)=> new Date(b.completedAt)-new Date(a.completedAt));
+      if (!tasks.length) {
+        list.innerHTML = '<li>No tasks completed this week</li>';
+        return;
+      }
+      for (const t of tasks) {
+        const li = document.createElement('li');
+        li.textContent = `${t.title} (✔ ${formatDate(t.completedAt)})`;
+        list.appendChild(li);
+      }
+    }
+
+    // ---------------------------
+    // DRIFT-FREE FOCUS TIMER
+    // ---------------------------
+    (function FocusTimerModule() {
+      const DISPLAY_ID = 'focus-display';
+      const BTN_START = 'focus-start';
+      const BTN_PAUSE = 'focus-pause';
+      const BTN_RESET = 'focus-reset';
+      const STORAGE_KEY = HOOKS.storage.timer;
+
+      let baseElapsedMs = 0;
+      let startWallClock = null;
+      let rafId = null;
+      let runStartISO = null;
+
+      const $display = () => document.getElementById(DISPLAY_ID);
+      const msNow = () => Date.now();
+
+      const fmt = (ms) => {
+        const s = Math.floor(ms / 1000);
+        const hh = String(Math.floor(s / 3600)).padStart(2,'0');
+        const mm = String(Math.floor((s % 3600) / 60)).padStart(2,'0');
+        const ss = String(s % 60).padStart(2,'0');
+        return `${hh}:${mm}:${ss}`;
+      };
+
+      const currentElapsedMs = () => (startWallClock != null ? (baseElapsedMs + (msNow() - startWallClock)) : baseElapsedMs);
+
+      function render() { const d = $display(); if (d) d.textContent = fmt(currentElapsedMs()); }
+      function loop() { render(); rafId = window.requestAnimationFrame(loop); }
+
+      function start() {
+        if (startWallClock != null) return;
+        startWallClock = msNow();
+        if (!runStartISO) runStartISO = new Date().toISOString();
+        save();
+        if (!rafId) rafId = window.requestAnimationFrame(loop);
+      }
+
+      function pause() {
+        if (startWallClock == null) return;
+        baseElapsedMs += msNow() - startWallClock;
+        startWallClock = null;
+        const elapsedNow = currentElapsedMs();
+        if (runStartISO && elapsedNow >= 60*1000) {
+          logFocusSession(runStartISO, new Date().toISOString());
+        }
+        runStartISO = null;
+        save();
+        updateProductivity();
+      }
+
+      function reset() {
+        if (startWallClock != null) pause();
+        baseElapsedMs = 0;
+        startWallClock = null;
+        runStartISO = null;
+        save();
+        render();
+      }
+
+      function save() {
+        const payload = { baseElapsedMs, startWallClock, savedAt: msNow() };
+        saveJSON(STORAGE_KEY, payload);
+      }
+
+      function restore() {
+        const s = loadJSON(STORAGE_KEY, null);
+        if (!s) return render();
+        baseElapsedMs = Number(s.baseElapsedMs || 0);
+        if (s.startWallClock != null) {
+          const delta = msNow() - Number(s.savedAt || s.startWallClock);
+          startWallClock = msNow() - delta;
+          if (!rafId) rafId = window.requestAnimationFrame(loop);
+        }
+        render();
+      }
+
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+      document.addEventListener('click', (e) => {
+        const id = e.target && e.target.id;
+        if (id === BTN_START) start();
+        if (id === BTN_PAUSE) pause();
+        if (id === BTN_RESET) reset();
+      });
+      window.addEventListener('beforeunload', save);
+      document.addEventListener('DOMContentLoaded', () => { restore(); render(); });
+    })();
+
+    // ---------------------------
+    // TODOIST ICAL SYNC (via Cloudflare Worker)
+    // ---------------------------
+    async function fetchTodoistICS() {
+      const r = await fetch(TODOIST_ICS_PROXY, { cache: 'no-store' });
+      if (!r.ok) throw new Error('ICS fetch failed: ' + r.status);
+      return await r.text();
+    }
+
+    function parseICS(icsText) {
+      const lines = icsText.replace(/\r\n/g, '\n').split('\n');
+      const events = [];
+      let cur = null;
+      const commit = () => { if (cur) { events.push(cur); cur = null; } };
+
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        if (line.startsWith('BEGIN:VEVENT')) { cur = { raw: {} }; continue; }
+        if (line.startsWith('END:VEVENT'))   { commit(); continue; }
+        if (!cur) continue;
+        while (i + 1 < lines.length && (lines[i+1].startsWith(' ') || lines[i+1].startsWith('\t'))) {
+          line += lines[++i].slice(1);
+        }
+        const idx = line.indexOf(':'); if (idx === -1) continue;
+        const keyPart = line.slice(0, idx);
+        const val = line.slice(idx + 1);
+        const key = keyPart.split(';')[0].toUpperCase();
+        cur.raw[key] = val;
+      }
+
+      const mapDT = (s) => {
+        if (!s) return null;
+        if (s.length === 8) {
+          const y = +s.slice(0,4), m = +s.slice(4,6)-1, d = +s.slice(6,8);
+          return new Date(Date.UTC(y, m, d));
+        }
+        return new Date(s.endsWith('Z') ? s : (s + 'Z'));
+      };
+
+      return events.map(e => {
+        const uid = (e.raw.UID || `${e.raw.DTSTART || ''}-${e.raw.SUMMARY || ''}`).trim();
+        const summary = (e.raw.SUMMARY || '').trim() || '(untitled)';
+        const dtstart = (e.raw.DTSTART || '').trim();
+        const dtend   = (e.raw.DTEND   || '').trim();
+        return {
+          id: String(uid),
+          title: summary,
+          start: mapDT(dtstart),
+          end:   mapDT(dtend),
+          allDay: dtstart.length === 8
+        };
+      }).filter(e => e.start);
+    }
+
+    async function syncFromTodoistICS() {
+      try {
+        const ics = await fetchTodoistICS();
+        const events = parseICS(ics);
+
+        const now = Date.now();
+        const minTs = now - 7 * 864e5;
+        const maxTs = now + 30 * 864e5;
+        const filtered = events.filter(e => {
+          const ts = e.start?.getTime() || 0;
+          return ts >= minTs && ts <= maxTs;
         });
+
+        const mapped = filtered.map(e => ({
+          id: e.id,
+          title: e.title,
+          createdAt: (e.start || new Date()).toISOString(),
+          dueAt: e.start ? e.start.toISOString() : null,
+          completedAt: null,
+          completedViaApp: false,
+          source: 'todoist-ical'
+        }));
+
+        const existing = getAllTasks();
+        const byId = new Map(existing.map(t => [String(t.id), t]));
+        for (const m of mapped) {
+          const prev = byId.get(m.id);
+          byId.set(m.id, { ...m, completedAt: prev?.completedAt ?? null });
+        }
+
+        setAllTasks(Array.from(byId.values()));
+        renderTasks();
+        renderWeeklyCompletedTasks();
+        updateProductivity();
+      } catch (err) {
+        console.warn('Todoist iCal sync failed:', err);
+      }
+    }
+
+    // ---------------------------
+    // BOOT
+    // ---------------------------
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('year').textContent = new Date().getFullYear();
+      renderTasks();
+      updateProductivity();
+      renderWeeklyCompletedTasks();
+
+      // Keep desktop & mobile current
+      syncFromTodoistICS();
+      window.addEventListener('focus', syncFromTodoistICS);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) syncFromTodoistICS(); });
+      window.addEventListener('online', syncFromTodoistICS);
+      setInterval(syncFromTodoistICS, 5 * 60 * 1000);
+    });
+  </script>
+
+  <!-- (Optional) SW register; keep your own filename if different -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(() => {});
       });
-      navigator.serviceWorker.addEventListener('message', (e)=>{
-        if (e.data?.type==='SYNC_SUCCESS') showToast('Data synced');
-      });
-    });
-  }
-
-  // ---------------- Helpers ----------------
-  const $ = sel => document.querySelector(sel);
-  const $$ = sel => Array.from(document.querySelectorAll(sel));
-  function showToast(msg){ try{ if(state.notificationsEnabled) new Notification('Focus', {body:msg,icon:'./icons/icon-192.png'}); }catch{} }
-  function save(){
-    localStorage.setItem('tasks', JSON.stringify(state.tasks));
-    localStorage.setItem('events', JSON.stringify(state.events));
-    localStorage.setItem('totalFocusTime', state.totalFocusTime);
-    localStorage.setItem('interventions', state.interventions);
-    localStorage.setItem('tasksCompleted', state.tasksCompleted);
-  }
-
-  // ---------------- Tabs (mobile) ----------------
-  function switchView(name){
-    state.view = name;
-    ['matrix','tasks','calendar','stats'].forEach(v=>{
-      $('#view-'+v).style.display = (v===name || window.innerWidth>=900)?'block':'none';
-      const btn = document.querySelector(`.tabbtn[data-view="${v}"]`); if(btn) btn.classList.toggle('active', v===name);
-    });
-    if(name==='calendar') requestAnimationFrame(()=>scrollToNow());
-  }
-  window.addEventListener('resize', ()=> switchView(state.view));
-  switchView('matrix');
-
-  // ---------------- Notifications ----------------
-  function requestNotifications(){
-    if(!('Notification' in window)) return;
-    Notification.requestPermission().then(p=>{
-      if(p==='granted'){ state.notificationsEnabled=true; showToast('Focus reminders enabled'); }
-    });
-  }
-  if('Notification' in window && Notification.permission==='granted') state.notificationsEnabled=true;
-
-  // ---------------- Focus Timer ----------------
-  function startFocusSession(){
-    state.isActive = true; state.startTime = Date.now();
-    $('#focusIndicator').classList.add('active'); $('#statusText').textContent = 'Focus session active';
-    tick();
-    if(state.notificationsEnabled) new Notification('Focus Session Started!', { body:'Time to get things done 🎯', icon:'./icons/icon-192.png'});
-  }
-  function tick(){
-    if(!state.isActive) return;
-    const s = Math.floor((Date.now()-state.startTime)/1000);
-    const m = Math.floor(s/60), ss = String(s%60).padStart(2,'0');
-    $('#timerDisplay').textContent = `${String(m).padStart(2,'0')}:${ss}`;
-    if(s>0 && s%60===0){ state.totalFocusTime++; updateStats(); save(); }
-    requestAnimationFrame(tick);
-  }
-  function setFocusReminder(){
-    const mins = parseInt(prompt('Remind every how many minutes?','15')); if(!mins) return;
-    setInterval(()=> showIntervention(`Focus check! It’s been ${mins} minutes.`), mins*60*1000);
-    showToast(`Reminders every ${mins} min`);
-    requestNotifications();
-  }
-  function quickIntervention(){
-    const msgs=['What should you be working on right now?','Are you being productive or just busy?','Stop scrolling. Start doing.','Focus time! What’s the ONE thing?'];
-    showIntervention(msgs[Math.floor(Math.random()*msgs.length)]);
-    state.interventions++; updateStats(); save();
-  }
-  function emergencyRefocus(){
-    showIntervention('🚨 EMERGENCY REFOCUS! Drop everything and focus on what matters most right NOW!');
-    state.interventions++; updateStats(); save();
-  }
-  function showIntervention(text){
-    $('#interventionMessage').textContent = text;
-    openSheet('#interventionPopup');
-    $('#currentTask').focus();
-  }
-  function closeIntervention(){ closeSheet('#interventionPopup'); $('#currentTask').value=''; }
-  function commitToTask(){
-    const t = $('#currentTask').value.trim(); if(!t){ alert('Enter what you will work on'); return; }
-    state.tasksCompleted++; startFocusSession(); closeIntervention(); showToast(`Working on: ${t}`); updateStats(); save();
-  }
-  function setBreakTimer(){
-    closeIntervention(); showToast('5-minute break started');
-    setTimeout(()=> showIntervention('Break’s over! Time to get back to it!'), 5*60*1000);
-  }
-
-  // ---------------- Tasks ----------------
-  function addTask(){
-    const v = $('#taskInput').value.trim(); if(!v) return;
-    state.tasks.push({ id:crypto.randomUUID(), title:v, done:false, created:Date.now() });
-    $('#taskInput').value=''; renderTasks(); save();
-  }
-  function toggleTask(id){
-    const t = state.tasks.find(x=>x.id===id); if(!t) return; t.done=!t.done; if(t.done) state.tasksCompleted++; renderTasks(); updateStats(); save();
-  }
-  function toCalendar(id){
-    const t = state.tasks.find(x=>x.id===id); if(!t) return; openQuickAdd(t.title);
-  }
-  function deleteTask(id){
-    state.tasks = state.tasks.filter(x=>x.id!==id); renderTasks(); save();
-  }
-  function renderTasks(){
-    const root = $('#taskList'); root.innerHTML='';
-    if(state.tasks.length===0){ root.innerHTML='<div class="small" style="padding:8px">No tasks yet.</div>'; return;}
-    state.tasks.forEach(t=>{
-      const el = document.createElement('div'); el.className='task';
-      el.innerHTML = `
-        <input type="checkbox" ${t.done?'checked':''} style="width:20px;height:20px" aria-label="Complete" />
-        <div class="title" style="${t.done?'text-decoration:line-through;color:#9aa9c4':''}">${t.title}</div>
-        <span class="chip">Task</span>
-        <button class="btn ghost" title="Schedule" aria-label="Add to calendar">📅</button>
-        <button class="btn ghost" title="Delete" aria-label="Delete">🗑</button>
-      `;
-      const [cb,, , btnCal, btnDel] = el.querySelectorAll('input, .title, .chip, button, button');
-      cb.addEventListener('change',()=>toggleTask(t.id));
-      btnCal.addEventListener('click',()=>toCalendar(t.id));
-      btnDel.addEventListener('click',()=>deleteTask(t.id));
-      root.appendChild(el);
-    });
-    $('#statTotalTasks').textContent = state.tasks.length;
-  }
-
-  // ---------------- Day Planner ----------------
-  const grid = $('#plannerGrid');
-  function setDayLabel(){
-    const d = state.currentDay;
-    const today = new Date(); today.setHours(0,0,0,0);
-    const cmp = new Date(d); cmp.setHours(0,0,0,0);
-    const same = cmp.getTime()===today.getTime();
-    const options={weekday:'short', month:'short', day:'numeric'};
-    $('#plannerDayLabel').textContent = (same?'Today — ':'') + d.toLocaleDateString([], options);
-  }
-  function hoursMarkup(){
-    let html=''; for(let h=0;h<24;h++){ const lab = (h%12||12)+(h<12?'a':'p'); html+=`<div class="hour" data-hour="${h}" data-h="${lab}"></div>`; }
-    grid.innerHTML = html + `<div class="nowline" id="nowLine" style="display:none"></div>`;
-  }
-  function renderEvents(){
-    grid.querySelectorAll('.event').forEach(e=>e.remove());
-    const dayKey = dayId(state.currentDay);
-    const events = state.events.filter(ev=>ev.day===dayKey);
-    events.forEach(ev=> placeEvent(ev));
-    const now = new Date(); const show = dayId(now)===dayKey;
-    const nl = $('#nowLine'); nl.style.display = show?'block':'none';
-    if(show){
-      const mins = now.getHours()*60 + now.getMinutes();
-      nl.style.top = (mins*56/60) + 'px';
     }
-    $('#statTodayEvents').textContent = events.length;
-  }
-  function placeEvent(ev){
-    const startM = ev.start, endM = ev.end;
-    const top = startM * 56 / 60;
-    const height = Math.max(30, (endM - startM) * 56 / 60);
-    const el = document.createElement('div'); el.className='event';
-    el.style.top = `${top}px`; el.style.height = `${height}px`;
-    el.innerHTML = `
-      <div>
-        <div>${ev.title}</div>
-        <div class="ev-time">${minToLabel(startM)}–${minToLabel(endM)}</div>
-      </div>
-      <div>
-        <button class="btn ghost" title="Edit" aria-label="Edit">✏️</button>
-        <button class="btn ghost" title="Delete" aria-label="Delete">🗑</button>
-      </div>
-    `;
-    const [editBtn, delBtn] = el.querySelectorAll('button');
-    editBtn.addEventListener('click', (e)=>{ e.stopPropagation(); editEvent(ev.id); });
-    delBtn.addEventListener('click', (e)=>{ e.stopPropagation(); deleteEvent(ev.id); });
-    grid.appendChild(el);
-  }
-  function minToLabel(m){ const h = Math.floor(m/60), mm = m%60; const ap = h<12?'a':'p'; const hh = h%12||12; return `${hh}:${String(mm).padStart(2,'0')}${ap}`; }
-  function labelToMin(val){ const [H,M] = val.split(':').map(n=>+n); return H*60 + M; }
-
-  function dayId(d){ const dt = new Date(d); dt.setHours(0,0,0,0); return dt.toISOString().slice(0,10); }
-  function shiftDay(n){ state.currentDay.setDate(state.currentDay.getDate()+n); setDayLabel(); renderWeekStrip(); renderEvents(); }
-  function goToday(){ state.currentDay = new Date(); setDayLabel(); renderWeekStrip(); renderEvents(); scrollToNow(); }
-  function scrollToNow(){
-    const dayKey = dayId(new Date()); if(dayId(state.currentDay)!==dayKey) return;
-    const y = (new Date().getHours()*60 + new Date().getMinutes())*56/60 - 140;
-    grid.scrollTo({top: Math.max(0,y), behavior:'smooth'});
-  }
-
-  function tapHour(e){
-    const rect = grid.getBoundingClientRect();
-    const y = e.clientY - rect.top + grid.scrollTop;
-    const mins = Math.max(0, Math.min(23*60+59, Math.round((y/56)*60/15)*15)); // snap 15m
-    openQuickAdd('', mins);
-  }
-
-  // Week strip
-  function startOfWeek(d){ const x = new Date(d); const day = x.getDay(); x.setHours(0,0,0,0); x.setDate(x.getDate() - day); return x; }
-  function sameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
-  function renderWeekStrip(){
-    const root = $('#weekStrip'); if(!root) return;
-    const sow = startOfWeek(state.currentDay);
-    const today = new Date();
-    let html='';
-    for(let i=0;i<7;i++){
-      const d = new Date(sow); d.setDate(sow.getDate()+i);
-      const lab = d.toLocaleDateString([], { weekday:'short' });
-      const num = d.getDate();
-      const active = sameDay(d, state.currentDay) ? 'active' : '';
-      const todayMark = sameDay(d,today) ? '•' : '';
-      html += `<button class="daybtn ${active}" data-d="${d.toISOString()}"><span>${lab}${todayMark?'':''}</span><strong>${num}</strong></button>`;
-    }
-    root.innerHTML = html;
-    root.querySelectorAll('.daybtn').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        state.currentDay = new Date(btn.getAttribute('data-d'));
-        setDayLabel(); renderWeekStrip(); renderEvents(); scrollToNow();
-      });
-    });
-  }
-
-  // Quick Add (new/edit)
-  function openQuickAdd(prefillTitle='', startMin=null){
-    $('#qa-title-input').value = prefillTitle || '';
-    const base = startMin!=null ? startMin : Math.round(((new Date().getHours()*60 + new Date().getMinutes())+7.5)/15)*15;
-    const hh = String(Math.floor(base/60)).padStart(2,'0'); const mm = String(base%60).padStart(2,'0');
-    $('#qa-start').value = `${hh}:${mm}`;
-    openSheet('#quickSheet');
-  }
-  function saveQuickAdd(){
-    const title = $('#qa-title-input').value.trim(); if(!title){ alert('Enter a title'); return; }
-    const t = $('#qa-start').value || '09:00';
-    const dur = Math.max(15, +($('#qa-dur').value||30));
-    const start = labelToMin(t); const end = Math.min(24*60, start+dur);
-    const ev = { id:crypto.randomUUID(), title, start, end, day: dayId(state.currentDay) };
-    state.events.push(ev); save(); closeQuickAdd(); renderEvents();
-  }
-  function closeQuickAdd(){ closeSheet('#quickSheet'); }
-
-  function editEvent(evId){
-    const ev = state.events.find(e=>e.id===evId); if(!ev) return;
-    openQuickAdd(ev.title, ev.start);
-    $('#quickSheet').dataset.editId = evId;
-    $('#qa-title').textContent = 'Edit Event';
-  }
-  function deleteEvent(evId){
-    state.events = state.events.filter(e=>e.id!==evId); save(); renderEvents();
-  }
-  const _origSaveQuickAdd = saveQuickAdd;
-  saveQuickAdd = function(){
-    const editId = $('#quickSheet').dataset.editId;
-    const title = $('#qa-title-input').value.trim();
-    const t = $('#qa-start').value || '09:00';
-    const dur = Math.max(15, +($('#qa-dur').value||30));
-    const start = labelToMin(t), end = Math.min(24*60, start+dur);
-
-    if(editId){
-      const ev = state.events.find(e=>e.id===editId);
-      if(ev){ ev.title=title; ev.start=start; ev.end=end; ev.day=dayId(state.currentDay); }
-      $('#quickSheet').dataset.editId = '';
-      $('#qa-title').textContent = 'Quick Add';
-      closeQuickAdd(); save(); renderEvents(); return;
-    }
-    const ev = { id:crypto.randomUUID(), title, start, end, day: dayId(state.currentDay) };
-    state.events.push(ev); save(); closeQuickAdd(); renderEvents();
-  };
-  const _origCloseQuickAdd = closeQuickAdd;
-  closeQuickAdd = function(){ $('#quickSheet').dataset.editId=''; $('#qa-title').textContent='Quick Add'; _origCloseQuickAdd(); };
-
-  // Sheets
-  function openSheet(sel){ const s=$(sel); s.classList.add('open'); s.setAttribute('aria-hidden','false'); }
-  function closeSheet(sel){ const s=$(sel); s.classList.remove('open'); s.setAttribute('aria-hidden','true'); }
-
-  // Matrix actions
-  function selectQuadrant(q){
-    const names=['','DO NOW','SCHEDULE','DELEGATE','ELIMINATE'];
-    const tips=['','Urgent & important — do it immediately.','Important, not urgent — schedule time.','Urgent, not important — delegate it.','Not urgent/important — remove or limit.'];
-    showIntervention(`${names[q]}: ${tips[q]}`);
-  }
-
-  // Stats
-  function updateStats(){
-    $('#focusTime').textContent = state.totalFocusTime;
-    $('#interventions').textContent = state.interventions;
-    $('#tasksCompleted').textContent = state.tasksCompleted;
-  }
-
-  // Network status
-  window.addEventListener('online', ()=>{ $('#offlineIndicator').style.display='none'; showToast('Back Online!'); try{ navigator.serviceWorker.ready.then(r=>r.sync.register('focus-data-sync')); }catch{} });
-  window.addEventListener('offline', ()=>{ $('#offlineIndicator').style.display='inline-block'; });
-
-  // ---------------- Smarter in-app scroll nudge ----------------
-  const NUDGE_STORE_KEY = 'nudgeConfig';
-  const NUDGE_CFG = Object.assign(
-    { enabled:true, sensitivity:3, cooldownMin:1, cooldownUntil:0 },
-    JSON.parse(localStorage.getItem(NUDGE_STORE_KEY) || '{}')
-  );
-  function sensPreset(level){
-    switch(+level){
-      case 1: return { windowMs:1200, minEvents:30,  minPx:5000 };
-      case 2: return { windowMs:1000, minEvents:18,  minPx:3200 };
-      case 3: return { windowMs:900,  minEvents:12,  minPx:2200 };
-      case 4: return { windowMs:800,  minEvents:9,   minPx:1500 };
-      default:return { windowMs:700,  minEvents:6,   minPx:900  };
-    }
-  }
-  let burst = { startY: 0, px:0, events:0, timer:null, startTs:0, lastScrollY: window.scrollY };
-  function resetBurst(){ burst = { startY: window.scrollY, px:0, events:0, timer:null, startTs:0, lastScrollY: window.scrollY }; }
-  function maybeNudge(){
-    if(!NUDGE_CFG.enabled) return;
-    const now = Date.now();
-    if(now < (NUDGE_CFG.cooldownUntil||0)) return;
-    const { minEvents, minPx } = sensPreset(NUDGE_CFG.sensitivity);
-    const deltaDoc = Math.abs(window.scrollY - burst.startY);
-    if (burst.events >= minEvents && burst.px >= minPx && deltaDoc >= Math.min(600, window.innerHeight*0.8)) {
-      showIntervention('Rapid scrolling detected! Ready to refocus?');
-      state.interventions++; updateStats(); save();
-      NUDGE_CFG.cooldownUntil = Date.now() + Math.max(0, (NUDGE_CFG.cooldownMin||1)) * 60 * 1000;
-      localStorage.setItem(NUDGE_STORE_KEY, JSON.stringify(NUDGE_CFG));
-      resetBurst();
-    }
-  }
-  addEventListener('wheel', (e) => {
-    if(!NUDGE_CFG.enabled) return;
-    const ay = Math.abs(e.deltaY);
-    if (ay < 10) return; // ignore tiny jitters
-    const { windowMs } = sensPreset(NUDGE_CFG.sensitivity);
-    if(!burst.startTs) { burst.startTs = Date.now(); burst.startY = window.scrollY; }
-    burst.px += ay; burst.events++;
-    clearTimeout(burst.timer);
-    burst.timer = setTimeout(()=> { maybeNudge(); resetBurst(); }, windowMs);
-  }, { passive:true });
-
-  // Settings sheet
-  function openSettings(){
-    $('#nudgeEnabled').checked = !!NUDGE_CFG.enabled;
-    $('#nudgeSensitivity').value = +NUDGE_CFG.sensitivity || 3;
-    $('#nudgeCooldown').value = +NUDGE_CFG.cooldownMin || 1;
-    $('#sensLabel').textContent = ` (level ${$('#nudgeSensitivity').value})`;
-    openSheet('#settingsSheet');
-  }
-  function closeSettings(){ closeSheet('#settingsSheet'); }
-  $('#nudgeSensitivity')?.addEventListener('input', () => {
-    $('#sensLabel').textContent = ` (level ${$('#nudgeSensitivity').value})`;
-  });
-  function saveSettings(){
-    NUDGE_CFG.enabled = $('#nudgeEnabled').checked;
-    NUDGE_CFG.sensitivity = +$('#nudgeSensitivity').value;
-    NUDGE_CFG.cooldownMin = Math.max(0, +($('#nudgeCooldown').value||0));
-    localStorage.setItem(NUDGE_STORE_KEY, JSON.stringify(NUDGE_CFG));
-    closeSettings();
-  }
-
-  // ---------------- Boot ----------------
-  function boot(){
-    hoursMarkup();
-    setDayLabel();
-    renderWeekStrip();
-    renderTasks();
-    renderEvents();
-    updateStats();
-    setTimeout(scrollToNow, 250);
-
-    const action = new URLSearchParams(location.search).get('action');
-    if(action==='focus') setTimeout(quickIntervention, 600);
-    else if(action==='start') setTimeout(startFocusSession, 600);
-    else if(action==='emergency') setTimeout(emergencyRefocus, 400);
-
-    // Move the "now" line every minute
-    setInterval(()=>{ if(dayId(new Date())===dayId(state.currentDay)) renderEvents(); }, 60*1000);
-
-    // Gentle reminder every 15m if notifications enabled
-    setInterval(()=>{ if(state.notificationsEnabled) showToast('Focus check — what are you working on?'); }, 15*60*1000);
-
-    // Ask for notifications the first time
-    if('Notification' in window && Notification.permission!=='granted'){
-      setTimeout(()=>requestNotifications(), 1200);
-    }
-  }
-  document.addEventListener('DOMContentLoaded', boot);
-
-  // Expose for inline handlers
-  window.switchView=switchView;
-  window.startFocusSession=startFocusSession;
-  window.setFocusReminder=setFocusReminder;
-  window.quickIntervention=quickIntervention;
-  window.emergencyRefocus=emergencyRefocus;
-  window.selectQuadrant=selectQuadrant;
-  window.addTask=addTask;
-  window.openQuickAdd=openQuickAdd;
-  window.saveQuickAdd=saveQuickAdd;
-  window.closeQuickAdd=closeQuickAdd;
-  window.shiftDay=shiftDay;
-  window.goToday=goToday;
-  window.tapHour=tapHour;
-  window.openSettings=openSettings;
-  window.closeSettings=closeSettings;
-  window.saveSettings=saveSettings;
   </script>
 </body>
 </html>
