@@ -1,1128 +1,576 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Focus Intervention - Eisenhower Matrix + Tasks & Calendar</title>
-
-  <!-- PWA Meta Tags -->
-  <meta name="theme-color" content="#0f172a">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Focus Intervention">
-  <meta name="application-name" content="Focus Intervention">
-  <meta name="msapplication-TileColor" content="#0f172a">
-
-  <!-- Manifest & Icons -->
-  <link rel="manifest" href="./manifest.json">
-  <link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="./icons/icon-16.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png">
+  <meta charset="utf-8" />
+  <title>Focus Intervention</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-192.png" />
+  <!-- Icons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png" />
 
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
     :root{
-      --bg1:#0f172a; --bg2:#1e293b; --panel:#0f182a; --panel2:#111827; --border:#334155; --accent:#3b82f6;
-      --ok:#10b981; --warn:#f59e0b; --danger:#ef4444; --muted:#94a3b8;
+      --bg:#0f172a; --bg-2:#111827; --card:#162238; --muted:#94a3b8; --brand:#3b82f6; --brand-2:#1d4ed8;
+      --ok:#10b981; --warn:#f59e0b; --danger:#ef4444; --ring:#334155;
+      --radius:14px; --space:16px; --tap:44px;
     }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-           background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
-           color: white; min-height: 100vh; overflow-x: hidden; }
-    .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
-
-    .header { text-align: center; margin-bottom: 30px; position: relative; }
-    .header h1 { font-size: 2.2em; margin-bottom: 10px; color: var(--accent); }
-
-    .focus-status { display:flex; align-items:center; justify-content:center; gap:15px; margin:20px 0; padding:15px;
-      background: rgba(15, 23, 42, 0.8); border-radius:12px; border:2px solid var(--border); }
-    .focus-indicator { width:16px; height:16px; border-radius:50%; background: var(--danger); animation:pulse 2s infinite; }
-    .focus-indicator.active { background: var(--ok); }
-    .timer-display { font-size:1.5em; font-weight:bold; color: var(--accent); }
-    .offline-indicator { background: var(--danger); color:white; padding:4px 8px; border-radius:4px; font-size:.8em; animation:pulse 2s infinite; }
-
-    .intervention-popup { position:fixed; inset:0; background: rgba(0,0,0,.95); display:none; align-items:center; justify-content:center; z-index:1000; animation:fadeIn .3s ease; }
-    .popup-content { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding:40px; border-radius:16px; text-align:center; max-width:500px; border:2px solid var(--accent); box-shadow:0 20px 60px rgba(59,130,246,.3); }
-    .intervention-title { font-size:2em; color: var(--danger); margin-bottom:15px; animation:shake .5s ease; }
-    .intervention-message { font-size:1.2em; margin-bottom:25px; line-height:1.6; }
-
-    .controls { display:flex; flex-wrap:wrap; gap:15px; justify-content:center; margin:25px 0; }
-    .btn { background: linear-gradient(135deg, var(--accent) 0%, #1d4ed8 100%); color:white; border:none; padding:12px 24px; border-radius:8px; cursor:pointer; font-size:16px; font-weight:500; transition:all .3s ease; display:flex; align-items:center; gap:8px; }
-    .btn:hover { transform: translateY(-2px); box-shadow:0 8px 20px rgba(59,130,246,.4); }
-    .btn-danger{ background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%); }
-    .btn-success{ background: linear-gradient(135deg, var(--ok) 0%, #059669 100%); }
-    .btn-warning{ background: linear-gradient(135deg, var(--warn) 0%, #d97706 100%); }
-    .btn-ghost { background: transparent; border:1px solid var(--border); }
-    .btn-small { padding:8px 12px; font-size:14px; }
-
-    .stats { display:grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap:15px; margin:20px 0; }
-    .stat-card { background: rgba(15,23,42,.6); padding:15px; border-radius:8px; text-align:center; border:1px solid var(--border); }
-    .stat-number { font-size:2em; font-weight:bold; color: var(--accent); }
-    .stat-label { font-size:.9em; opacity:.8; }
-
-    .matrix { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:30px 0; }
-    .quadrant { padding:25px; border-radius:12px; cursor:pointer; transition:all .3s ease; border:2px solid transparent; position:relative; overflow:hidden; }
-    .quadrant:hover { transform: translateY(-5px); border-color:white; }
-    .quadrant-1 { background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); }
-    .quadrant-2 { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
-    .quadrant-3 { background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); }
-    .quadrant-4 { background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); }
-    .quadrant-title { font-size:1.4em; font-weight:bold; margin-bottom:8px; }
-    .quadrant-desc { font-size:.9em; opacity:.9; line-height:1.4; }
-
-    .task-input { width:100%; padding:12px; border:2px solid var(--border); border-radius:8px; background:#1e293b; color:white; font-size:16px; margin:10px 0; }
-    .task-input:focus { outline:none; border-color: var(--accent); }
-
-    .notification-permission { background: rgba(251,191,36,.1); border:1px solid var(--warn); padding:15px; border-radius:8px; margin:20px 0; text-align:center; }
-
-    .mobile-friendly { position:fixed; bottom:20px; right:20px; background: var(--accent); color:white; border:none; padding:15px; border-radius:50%; cursor:pointer; font-size:20px; box-shadow:0 4px 20px rgba(59,130,246,.4); z-index:999; }
-
-    /* PWA mode */
-    .pwa-mode { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
-    .pwa-mode .container { padding-top:30px; }
-    .pwa-mode .header h1::after { content:" 📱"; opacity:.5; }
-
-    /* ===== Tasks & Calendar styles ===== */
-    .panel { background: rgba(17,24,39,.65); border:1px solid var(--border); border-radius:12px; padding:16px; }
-    .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:10px 0 16px; }
-    .input { background:#111827; border:1px solid var(--border); color:#eef; border-radius:8px; padding:10px 12px; outline:none; }
-    .input::placeholder{ color:#64748b; }
-    .select { background:#111827; border:1px solid var(--border); color:#eef; border-radius:8px; padding:8px 10px; }
-    .list { list-style:none; display:flex; flex-direction:column; gap:10px; }
-    .task-card { background:#0b1220; border:1px solid var(--border); border-radius:10px; padding:10px; display:flex; gap:10px; align-items:flex-start; }
-    .task-title { font-weight:600; }
-    .task-meta { font-size:12px; color:#a5b4fc; display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
-    .pill { font-size:11px; padding:2px 8px; border:1px solid var(--border); border-radius:999px; color:#e2e8f0; }
-    .p1{ border-color:#ef4444; color:#fecaca; } .p2{ border-color:#f97316; color:#ffedd5; }
-    .p3{ border-color:#eab308; color:#fef9c3; } .p4{ border-color:#9ca3af; color:#e5e7eb; }
-
-    .cal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-    .cal-grid { display:grid; grid-template-columns: repeat(7,1fr); gap:6px; }
-    .cal-dow { font-size:12px; color:#94a3b8; text-align:center; }
-    .cal-day { min-height:76px; background:#0b1220; border:1px solid var(--border); border-radius:8px; padding:6px; cursor:pointer; }
-    .cal-day.today { outline:2px solid var(--accent); }
-    .cal-date { font-size:12px; color:#cbd5e1; font-weight:600; margin-bottom:4px; }
-    .dots { display:flex; gap:3px; }
-    .dot { width:6px; height:6px; border-radius:999px; display:inline-block; }
-    .muted { color:#94a3b8; }
-    .grid-2-1 { display:grid; grid-template-columns: 2fr 1fr; gap:16px; }
-    @media (max-width: 900px){ .grid-2-1 { grid-template-columns: 1fr; } }
-
-    /* ===== Time tracking bits ===== */
-    .time-badge{font-size:12px;color:#93c5fd;background:#0b1220;border:1px solid var(--border);border-radius:999px;padding:2px 8px;}
-    .timer-btn{padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:8px;background:transparent;color:#e5e7eb;}
-    .timer-btn.running{outline:2px solid var(--ok);}
-
-    /* ===== Day Planner (24h) ===== */
-    .day-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:8px 0; }
-    .day-grid { display:grid; grid-template-columns: 60px 1fr; row-gap:6px; }
-    .slot-label { font-size:12px; color:#94a3b8; text-align:right; padding-right:8px; line-height:44px; }
-    .hour-slot { min-height:44px; background:#0b1220; border:1px dashed var(--border); border-radius:8px; padding:6px; }
-    .hour-slot.over { border-color: var(--accent); background: rgba(59,130,246,.08); }
-    .sched-item { background:#111827; border:1px solid var(--border); border-radius:8px; padding:6px 8px; margin:4px 0; }
-    .task-card.draggable { cursor:grab; }
-    .task-card.draggable:active { cursor:grabbing; }
-
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
-    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
-
-    @media (max-width: 768px) {
-      .popup-content { margin:20px; padding:25px; }
-      .matrix { grid-template-columns:1fr; gap:10px; }
-      .controls { flex-direction:column; align-items:center; }
-      .btn { width:100%; justify-content:center; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;
+      background:linear-gradient(135deg, #0f172a, #1e293b); color:#fff;
+      -webkit-tap-highlight-color: transparent;
     }
+
+    /* Layout */
+    .app{min-height:100%; display:flex; flex-direction:column; padding-bottom: calc(56px + env(safe-area-inset-bottom));}
+    header{
+      position:sticky; top:0; z-index:5;
+      background:rgba(15,23,42,.85); backdrop-filter: blur(8px);
+      padding: max(12px, env(safe-area-inset-top)) var(--space) 10px;
+      border-bottom:1px solid #1f2a44;
+    }
+    .brand{display:flex; align-items:center; gap:10px}
+    .dot{width:10px; height:10px; border-radius:50%; background:var(--danger); box-shadow:0 0 0 0 rgba(16,185,129,.4); transition:.3s}
+    .dot.active{background:var(--ok); animation:pulse 2s infinite}
+    .hdr-right{margin-left:auto; display:flex; gap:10px; align-items:center; color:var(--muted); font-size:12px}
+
+    .content{flex:1; padding:12px var(--space); max-width:1000px; width:100%; margin:0 auto}
+    .grid{display:grid; gap:12px}
+    @media(min-width:900px){
+      .grid{grid-template-columns: 1.1fr .9fr}
+      .section{min-height:520px}
+    }
+
+    .section{
+      background:rgba(15,23,42,.6); border:1px solid var(--ring);
+      border-radius:var(--radius); padding:12px;
+    }
+    .section h2{margin:0 0 10px; font-size:1.05rem}
+
+    /* Tabs (mobile) */
+    .tabs{display:none}
+    .tabbar{
+      position:fixed; bottom:0; left:0; right:0; z-index:9;
+      background:rgba(15,23,42,.96); backdrop-filter: blur(8px);
+      border-top:1px solid #1f2a44; height:56px; padding:6px max(10px, env(safe-area-inset-left)) max(6px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-right));
+      display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
+    }
+    .tabbtn{
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      min-height:44px; border-radius:12px; color:#cbd5e1; border:1px solid transparent; font-size:11px;
+    }
+    .tabbtn.active{color:#fff; border-color:#28406d; background:#12203a}
+    .hide-mobile{display:none}
+    @media(min-width:900px){
+      .tabbar{display:none}
+      .tabs{display:none}
+      .hide-mobile{display:block}
+    }
+
+    /* Controls */
+    .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      padding:10px 14px; min-height:var(--tap); border-radius:10px; border:1px solid #2a3a57; background:linear-gradient(135deg,#28406d,#1b2e52); color:#fff; cursor:pointer; font-weight:600}
+    .btn:active{transform: translateY(1px)}
+    .btn.ok{background:linear-gradient(135deg,#16a34a,#0f7a3a); border-color:#0f7a3a}
+    .btn.warn{background:linear-gradient(135deg,#f59e0b,#b45309); border-color:#b45309}
+    .btn.danger{background:linear-gradient(135deg,#ef4444,#b91c1c); border-color:#b91c1c}
+    .btn.ghost{background:transparent}
+
+    .row{display:flex; gap:8px; flex-wrap:wrap}
+
+    /* Matrix (accordion on mobile) */
+    .matrix{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    @media(max-width:899px){ .matrix{grid-template-columns:1fr} }
+    .quad{padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,.15); cursor:pointer}
+    .q1{background:linear-gradient(135deg,#b91c1c,#ef4444)}
+    .q2{background:linear-gradient(135deg,#059669,#10b981)}
+    .q3{background:linear-gradient(135deg,#d97706,#f59e0b)}
+    .q4{background:linear-gradient(135deg,#6366f1,#4338ca)}
+    .quad h3{margin:0 0 6px; font-size:1rem}
+    .quad p{margin:0; opacity:.9; font-size:.9rem}
+
+    /* Tasks */
+    .task-add{display:flex; gap:8px; margin:10px 0}
+    .input{
+      flex:1; padding:12px; min-height:var(--tap); border-radius:10px; border:1px solid #2a3a57; background:#111c30; color:#fff; font-size:16px;
+    }
+    .tasklist{display:grid; gap:8px; max-height:360px; overflow:auto; padding-right:2px}
+    .task{display:flex; align-items:center; gap:8px; padding:10px; border:1px solid #263754; background:#0f1a30; border-radius:10px}
+    .task .title{flex:1}
+    .chip{font-size:11px; padding:3px 8px; background:#173054; border:1px solid #28406d; border-radius:999px; color:#cbd5e1}
+
+    /* Day Planner (24h) */
+    .planner{
+      border:1px solid #263754; border-radius:12px; overflow:hidden; background:#0e1729;
+      display:flex; flex-direction:column; height:520px;
+    }
+    .planner-head{
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      padding:8px; border-bottom:1px solid #1f2a44; position:sticky; top:0; background:#0e1729; z-index:2;
+    }
+    .planner-day{font-weight:700}
+    .planner-grid{
+      position:relative; flex:1; overflow:auto; -webkit-overflow-scrolling: touch; scroll-behavior:smooth;
+      background:
+        linear-gradient(#1f2a44 1px, transparent 1px) 0 0/100% 56px; /* hour lines */
+    }
+    .hour{position:relative; height:56px; padding-left:58px; display:flex; align-items:flex-start; color:#8ea3c2; font-size:12px}
+    .hour::before{
+      content:attr(data-h); position:absolute; left:8px; top:6px; width:42px; text-align:right; opacity:.8;
+    }
+    .nowline{
+      position:absolute; left:0; right:0; height:2px; background:var(--danger); z-index:1;
+      box-shadow:0 0 6px rgba(239,68,68,.7);
+    }
+    .event{
+      position:absolute; left:58px; right:8px; border:1px solid #2c4a7a; background:rgba(59,130,246,.2);
+      border-left:3px solid var(--brand); border-radius:10px; padding:6px 8px; color:#e5edf9; font-size:13px;
+      display:flex; justify-content:space-between; gap:8px;
+    }
+    .ev-time{font-size:11px; color:#c7d2fe}
+    .ev-chip{font-size:10px; padding:2px 6px; background:#0f2549; border:1px solid #2b4b80; border-radius:999px}
+
+    /* Popup / sheets */
+    .sheet{
+      position:fixed; inset:0; background:rgba(0,0,0,.65); display:none; align-items:flex-end; justify-content:center; z-index:20;
+    }
+    .sheet.open{display:flex}
+    .sheet-card{
+      width:100%; max-width:560px; background:#0e1729; border-top-left-radius:16px; border-top-right-radius:16px;
+      border:1px solid #1f2a44; padding:14px 14px max(14px, env(safe-area-inset-bottom));
+      animation:rise .2s ease-out;
+    }
+    .sheet h3{margin:0 0 8px}
+    .form-row{display:flex; gap:8px; margin:8px 0}
+    .select,.time{height:44px}
+    .select,.time,.input{appearance:none}
+
+    /* Floating action */
+    .fab{
+      position:fixed; right:16px; bottom: calc(70px + env(safe-area-inset-bottom));
+      width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,var(--brand),var(--brand-2));
+      display:flex; align-items:center; justify-content:center; border:none; color:#fff; font-size:22px; z-index:8; box-shadow:0 8px 28px rgba(59,130,246,.45);
+    }
+
+    /* Stats pills */
+    .stats{display:grid; grid-template-columns: repeat(3,1fr); gap:8px}
+    .pill{background:#0e1729; border:1px solid #263754; border-radius:12px; text-align:center; padding:10px}
+    .num{font-size:1.2rem; color:var(--brand); font-weight:800}
+
+    /* Animations */
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.0)} 50%{box-shadow:0 0 0 8px rgba(16,185,129,.12)}}
+    @keyframes rise{from{transform:translateY(12px);opacity:0} to{transform:none;opacity:1}}
   </style>
 </head>
+
 <body>
-  <div class="container">
-    <!-- Header -->
-    <div class="header">
-      <h1>🎯 Focus Intervention System</h1>
-      <p>Stop doom scrolling. Get back to what matters.</p>
-
-      <div class="focus-status">
-        <div class="focus-indicator" id="focusIndicator"></div>
-        <span id="statusText">Monitoring focus...</span>
-        <div class="timer-display" id="timerDisplay">00:00</div>
-        <div class="offline-indicator" id="offlineIndicator" style="display:none;">📶 Offline</div>
-      </div>
-
-      <!-- Quick nav -->
-      <div class="controls" style="margin-top:10px;">
-        <button class="btn btn-success" onclick="startFocusSession()">🎯 Start Focus</button>
-        <button class="btn btn-warning" onclick="setFocusReminder()">⏰ Set Reminders</button>
-        <button class="btn" onclick="quickIntervention()">🚨 I'm Scrolling!</button>
-        <button class="btn btn-danger" onclick="emergencyRefocus()">💥 Emergency Refocus</button>
-        <button class="btn btn-ghost" onclick="document.getElementById('tasksCal').scrollIntoView({behavior:'smooth'})">🗂️ Tasks</button>
-        <button class="btn btn-ghost" onclick="document.getElementById('tasksCal').scrollIntoView({behavior:'smooth'})">🗓️ Calendar</button>
-      </div>
-    </div>
-
-    <!-- Install & Notifications -->
-    <div class="notification-permission" id="installPrompt" style="display:none;">
-      <strong>📲 Install Focus Intervention App</strong><br>
-      Get instant access to focus tools, even offline!
-      <br><br>
-      <button class="btn btn-success" onclick="installPWA()">📱 Install App</button>
-      <button class="btn" onclick="dismissInstall()">Not Now</button>
-    </div>
-
-    <div class="notification-permission" id="notificationAlert">
-      <strong>📱 Enable Notifications</strong><br>
-      Allow notifications to get focus reminders on your phone and desktop
-      <br><br>
-      <button class="btn" onclick="requestNotifications()">Enable Alerts</button>
-    </div>
-
-    <!-- Stats -->
-    <div class="stats" id="todayStats">
-      <div class="stat-card">
-        <div class="stat-number" id="focusTime">0</div>
-        <div class="stat-label">Minutes Focused</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number" id="interventions">0</div>
-        <div class="stat-label">Interventions Used</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number" id="tasksCompleted">0</div>
-        <div class="stat-label">Tasks Completed</div>
-      </div>
-    </div>
-
-    <!-- Eisenhower Matrix -->
-    <div class="matrix">
-      <div class="quadrant quadrant-1" onclick="selectQuadrant(1)">
-        <div class="quadrant-title">🔥 DO NOW</div>
-        <div class="quadrant-desc">Urgent + Important<br>Crisis that needs immediate attention</div>
-      </div>
-      <div class="quadrant quadrant-2" onclick="selectQuadrant(2)">
-        <div class="quadrant-title">📅 SCHEDULE</div>
-        <div class="quadrant-desc">Important + Not Urgent<br>Plan time for strategic work</div>
-      </div>
-      <div class="quadrant quadrant-3" onclick="selectQuadrant(3)">
-        <div class="quadrant-title">👥 DELEGATE</div>
-        <div class="quadrant-desc">Urgent + Not Important<br>Get others to handle this</div>
-      </div>
-      <div class="quadrant quadrant-4" onclick="selectQuadrant(4)">
-        <div class="quadrant-title">🗑️ ELIMINATE</div>
-        <div class="quadrant-desc">Not Urgent + Not Important<br>Time wasters like doom scrolling</div>
-      </div>
-    </div>
-
-    <!-- Tasks + Calendar -->
-    <section id="tasksCal" class="panel">
-      <h2 style="margin-bottom:10px;">🗂️ Tasks & 🗓️ Calendar</h2>
-      <p class="muted" style="margin-bottom:10px;">
-        Quick Add supports <code>#project</code>, <code>@label</code>, <code>P1–P4</code>, <code>due:YYYY-MM-DD</code>, and recurrence
-        (<code>every weekday</code>, <code>every mon,wed,fri</code>, <code>every week</code>, <code>every month</code>).
-      </p>
-
-      <div class="toolbar">
-        <input id="quickAdd" class="input" style="flex:1; min-width:260px;" placeholder='Quick Add (e.g. "Call lender #Deals @followup P2 due:2025-10-01 every weekday")'>
-        <button id="addTaskBtn" class="btn btn-small">Add</button>
-        <button id="todayViewBtn" class="btn btn-small btn-ghost">Today</button>
-        <button id="upcomingViewBtn" class="btn btn-small btn-ghost">Upcoming</button>
-        <button id="projectsViewBtn" class="btn btn-small btn-ghost">Projects</button>
-        <button id="labelsViewBtn" class="btn btn-small btn-ghost">Labels</button>
-      </div>
-
-      <div class="grid-2-1">
-        <!-- Left: list + filters -->
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div id="focusIndicator" class="dot" aria-hidden="true"></div>
         <div>
-          <div class="toolbar" style="justify-content:space-between;">
-            <div style="font-weight:600;" id="listTitle">Today</div>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <select id="projectFilter" class="select"><option value="">All Projects</option></select>
-              <select id="labelFilter" class="select"><option value="">All Labels</option></select>
-              <select id="priorityFilter" class="select">
-                <option value="">All Priorities</option>
-                <option value="1">P1</option><option value="2">P2</option>
-                <option value="3">P3</option><option value="4">P4</option>
-              </select>
-            </div>
-          </div>
-          <ul id="taskList" class="list"></ul>
-          <p id="emptyState" class="muted" style="display:none;">No tasks to show.</p>
+          <div style="font-weight:800">Focus Intervention</div>
+          <div id="statusText" style="font-size:12px;color:#93a5c4">Monitoring focus…</div>
+        </div>
+        <div class="hdr-right">
+          <span id="timerDisplay">00:00</span>
+          <span id="offlineIndicator" class="chip" style="display:none;background:#3c1420;border-color:#702a3a;color:#fecaca">Offline</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- Mobile Tabs: show one section at a time -->
+      <div class="tabs" id="tabs" hidden></div>
+
+      <div id="view-matrix" class="section">
+        <h2>Eisenhower Matrix</h2>
+        <div class="matrix">
+          <button class="quad q1" onclick="selectQuadrant(1)"><h3>🔥 DO NOW</h3><p>Urgent + Important</p></button>
+          <button class="quad q2" onclick="selectQuadrant(2)"><h3>📅 SCHEDULE</h3><p>Important + Not Urgent</p></button>
+          <button class="quad q3" onclick="selectQuadrant(3)"><h3>👥 DELEGATE</h3><p>Urgent + Not Important</p></button>
+          <button class="quad q4" onclick="selectQuadrant(4)"><h3>🗑️ ELIMINATE</h3><p>Not Urgent + Not Important</p></button>
         </div>
 
-        <!-- Right: calendar -->
-        <div>
-          <div class="cal-head">
-            <div style="display:flex; gap:8px; align-items:center;">
-              <button id="prevMonth" class="btn btn-small btn-ghost">‹</button>
-              <div id="monthLabel" style="min-width:160px; text-align:center; font-weight:600;"></div>
-              <button id="nextMonth" class="btn btn-small btn-ghost">›</button>
-            </div>
-            <div style="display:flex; gap:6px; align-items:center;">
-              <button id="monthMode" class="btn btn-small btn-ghost">Month</button>
-              <button id="dayMode" class="btn btn-small btn-ghost">Day</button>
-              <span class="muted">Today: <span id="todayIso"></span></span>
+        <div class="row" style="margin-top:10px">
+          <button class="btn ok" onclick="startFocusSession()">🎯 Start Focus</button>
+          <button class="btn warn" onclick="setFocusReminder()">⏰ Reminders</button>
+          <button class="btn" onclick="quickIntervention()">🚨 I'm Scrolling!</button>
+          <button class="btn danger" onclick="emergencyRefocus()">💥 Emergency</button>
+        </div>
+
+        <div class="stats" style="margin-top:12px">
+          <div class="pill"><div class="num" id="focusTime">0</div><div class="muted">Minutes Focused</div></div>
+          <div class="pill"><div class="num" id="interventions">0</div><div class="muted">Interventions</div></div>
+          <div class="pill"><div class="num" id="tasksCompleted">0</div><div class="muted">Tasks Done</div></div>
+        </div>
+      </div>
+
+      <div id="view-tasks" class="section">
+        <h2>Tasks</h2>
+        <div class="task-add">
+          <input id="taskInput" class="input" placeholder="Add task… e.g. Draft report due:2025-09-30 #work P2" />
+          <button class="btn ok" onclick="addTask()">Add</button>
+        </div>
+        <div id="taskList" class="tasklist" role="list"></div>
+      </div>
+
+      <div id="view-calendar" class="section">
+        <h2 style="margin-bottom:6px">Day Planner</h2>
+        <div class="planner" id="planner">
+          <div class="planner-head">
+            <button class="btn ghost" onclick="shiftDay(-1)">◀</button>
+            <div class="planner-day" id="plannerDayLabel">Today</div>
+            <div class="row">
+              <button class="btn ghost" onclick="goToday()">Today</button>
+              <button class="btn ghost" onclick="shiftDay(1)">▶</button>
             </div>
           </div>
-
-          <div id="calendarDowHeader" class="cal-grid" style="margin-bottom:6px;">
-            <div class="cal-dow">Sun</div><div class="cal-dow">Mon</div><div class="cal-dow">Tue</div>
-            <div class="cal-dow">Wed</div><div class="cal-dow">Thu</div><div class="cal-dow">Fri</div><div class="cal-dow">Sat</div>
-          </div>
-          <div id="calendarGrid" class="cal-grid"></div>
-
-          <!-- 24h Day Planner -->
-          <div id="dayPlanner" style="display:none; margin-top:8px;"></div>
-
-          <div style="margin-top:12px;">
-            <div style="font-weight:600; margin-bottom:6px;">Tasks on <span id="selectedDateLabel"></span></div>
-            <ul id="dayTaskList" class="list"></ul>
+          <div class="planner-grid" id="plannerGrid" onclick="tapHour(event)">
+            <!-- Hours injected -->
           </div>
         </div>
       </div>
-    </section>
+
+      <div id="view-stats" class="section">
+        <h2>Activity</h2>
+        <div class="stats" style="margin-top:12px">
+          <div class="pill"><div class="num" id="statTotalTasks">0</div><div class="muted">Total Tasks</div></div>
+          <div class="pill"><div class="num" id="statTodayEvents">0</div><div class="muted">Today’s Events</div></div>
+          <div class="pill"><div class="num" id="statFocusStreak">0</div><div class="muted">Focus Streak (days)</div></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Tab Bar -->
+    <nav class="tabbar" role="tablist" aria-label="Primary">
+      <button class="tabbtn active" data-view="matrix" onclick="switchView('matrix')">🏹<span>Matrix</span></button>
+      <button class="tabbtn" data-view="tasks" onclick="switchView('tasks')">✅<span>Tasks</span></button>
+      <button class="tabbtn" data-view="calendar" onclick="switchView('calendar')">📅<span>Calendar</span></button>
+      <button class="tabbtn" data-view="stats" onclick="switchView('stats')">📈<span>Stats</span></button>
+    </nav>
+
+    <!-- Floating Add -->
+    <button class="fab" title="Quick add" onclick="openQuickAdd()">＋</button>
   </div>
 
-  <!-- Intervention Popup -->
-  <div class="intervention-popup" id="interventionPopup">
-    <div class="popup-content">
-      <div class="intervention-title">⚠️ FOCUS BREAK!</div>
-      <div class="intervention-message" id="interventionMessage">
-        Time to stop scrolling and get back to what matters!
+  <!-- Quick Add Sheet -->
+  <div class="sheet" id="quickSheet" aria-hidden="true">
+    <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="qa-title">
+      <h3 id="qa-title">Quick Add</h3>
+      <input id="qa-title-input" class="input" placeholder="Title" />
+      <div class="form-row">
+        <input id="qa-start" type="time" class="input time" />
+        <input id="qa-dur" type="number" class="input" min="15" step="15" value="30" placeholder="Duration (min)" />
       </div>
-      <input type="text" class="task-input" id="currentTask" placeholder="What should you be working on right now?">
-      <div class="controls">
-        <button class="btn btn-success" onclick="commitToTask()">✅ I'll Do This Now</button>
-        <button class="btn btn-warning" onclick="setBreakTimer()">⏳ 5 Min Break</button>
-        <button class="btn btn-danger" onclick="closeIntervention()">❌ Ignore (Bad Choice)</button>
+      <div class="row" style="justify-content:flex-end">
+        <button class="btn ghost" onclick="closeQuickAdd()">Cancel</button>
+        <button class="btn ok" onclick="saveQuickAdd()">Save</button>
       </div>
     </div>
   </div>
 
-  <button class="mobile-friendly" onclick="quickIntervention()" title="Quick Focus Check">🎯</button>
+  <!-- Intervention Popup (kept minimal, touch-friendly) -->
+  <div class="sheet" id="interventionPopup" aria-hidden="true">
+    <div class="sheet-card" role="dialog" aria-modal="true">
+      <h3>⚠️ FOCUS BREAK!</h3>
+      <p id="interventionMessage" style="color:#cbd5e1;margin:8px 0 12px">Time to stop scrolling and get back to what matters!</p>
+      <input type="text" class="input" id="currentTask" placeholder="What should you be working on right now?" />
+      <div class="row" style="margin-top:10px">
+        <button class="btn ok" onclick="commitToTask()">✅ Do This Now</button>
+        <button class="btn warn" onclick="setBreakTimer()">⏳ 5-min Break</button>
+        <button class="btn danger" onclick="closeIntervention()">❌ Ignore</button>
+      </div>
+    </div>
+  </div>
 
-  <!-- ================= ORIGINAL APP SCRIPT (with quadrant quick-add toggle) ================= -->
   <script>
-    let focusState = {
-      isActive: false,
-      startTime: null,
-      totalFocusTime: parseInt(localStorage.getItem('totalFocusTime') || '0'),
-      interventions: parseInt(localStorage.getItem('interventions') || '0'),
-      tasksCompleted: parseInt(localStorage.getItem('tasksCompleted') || '0'),
-      reminderInterval: null,
-      notificationsEnabled: false
-    };
+  // ---------------- State ----------------
+  const state = {
+    isActive:false, startTime:null,
+    totalFocusTime: +localStorage.getItem('totalFocusTime')||0,
+    interventions: +localStorage.getItem('interventions')||0,
+    tasksCompleted: +localStorage.getItem('tasksCompleted')||0,
+    notificationsEnabled: false,
+    tasks: JSON.parse(localStorage.getItem('tasks')||'[]'),
+    events: JSON.parse(localStorage.getItem('events')||'[]'), // {id,title,start,end,day}
+    view: 'matrix',
+    currentDay: new Date()
+  };
 
-    // Toggle this to enable/disable auto task creation from the matrix.
-    const AUTO_TASK_FROM_MATRIX = true;
-
-    let deferredPrompt;
-
-    // PWA Installation
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      showInstallPrompt();
-    });
-
-    function showInstallPrompt() {
-      const installPrompt = document.getElementById('installPrompt');
-      if (installPrompt) installPrompt.style.display = 'block';
-    }
-
-    async function installPWA() {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          showNotification('App Installed!', 'Focus Intervention is now available offline');
-          localStorage.setItem('install-dismissed', 'true');
-        }
-        deferredPrompt = null;
-      } else {
-        alert('To install on iOS:\n1. Tap Share\n2. "Add to Home Screen"\n\nOn Android:\n1. Menu (⋮)\n2. "Install app"');
-      }
-      dismissInstall();
-    }
-    function dismissInstall() {
-      const el = document.getElementById('installPrompt');
-      if (el) { el.style.display = 'none'; localStorage.setItem('install-dismissed','true'); }
-    }
-
-    // Dynamic manifest/icon generator (kept)
-    function generateManifest() {
-      const manifest = {
-        name: "Focus Intervention - Anti Doom Scroll",
-        short_name: "Focus Intervention",
-        description: "Stop doom scrolling and get back to what matters with the Eisenhower Matrix",
-        start_url: "./",
-        scope: "./",
-        display: "standalone",
-        background_color: "#0f172a",
-        theme_color: "#0f172a",
-        orientation: "portrait-primary",
-        categories: ["productivity", "lifestyle", "utilities"],
-        lang: "en",
-        icons: [
-          { src: generateIcon(192), sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: generateIcon(192), sizes: "192x192", type: "image/png", purpose: "maskable" },
-          { src: generateIcon(512), sizes: "512x512", type: "image/png", purpose: "any" },
-          { src: generateIcon(512), sizes: "512x512", type: "image/png", purpose: "maskable" }
-        ],
-        shortcuts: [
-          { name: "Quick Focus Check", short_name: "Focus Check", description: "Immediately check if you're staying focused", url: "./?action=focus", icons: [{ src: generateIcon(96), sizes: "96x96" }] },
-          { name: "Start Focus Session", short_name: "Start Focus", description: "Begin a new focus session", url: "./?action=start", icons: [{ src: generateIcon(96), sizes: "96x96" }] }
-        ]
-      };
-      return 'data:application/json,' + encodeURIComponent(JSON.stringify(manifest));
-    }
-    function generateIcon(size) {
-      const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size;
-      const ctx = canvas.getContext('2d');
-      const gradient = ctx.createLinearGradient(0, 0, size, size);
-      gradient.addColorStop(0, '#0f172a'); gradient.addColorStop(1, '#3b82f6');
-      ctx.fillStyle = gradient; ctx.fillRect(0, 0, size, size);
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = size * 0.05;
-      const cx=size/2, cy=size/2, r=size*0.3;
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2*Math.PI); ctx.stroke();
-      ctx.beginPath(); ctx.arc(cx, cy, r*0.6, 0, 2*Math.PI); ctx.stroke();
-      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx, cy, r*0.3, 0, 2*Math.PI); ctx.fill();
-      return canvas.toDataURL();
-    }
-
-    // Service Worker Registration
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js')
-          .then((registration) => {
-            console.log('SW registered: ', registration);
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing;
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  showUpdateAvailable();
-                }
-              });
-            });
-          })
-          .catch((err) => { console.log('SW registration failed: ', err); });
-
-        navigator.serviceWorker.addEventListener('message', (event) => {
-          if (event.data && event.data.type === 'SYNC_SUCCESS') {
-            showNotification('Data Synced!', `${event.data.data} items synced to cloud`);
-          }
-        });
-      });
-    }
-    function showUpdateAvailable() {
-      const updateBanner = document.createElement('div');
-      updateBanner.className = 'notification-permission';
-      updateBanner.id = 'updateBanner';
-      updateBanner.innerHTML = `
-        <strong>🔄 App Update Available</strong><br>
-        A new version of Focus Intervention is ready
-        <br><br>
-        <button class="btn btn-success" onclick="updateApp()">Update Now</button>
-        <button class="btn" onclick="dismissUpdate(this)">Later</button>`;
-      document.querySelector('.container').insertBefore(updateBanner, document.querySelector('.header').nextSibling);
-    }
-    function updateApp() { if (navigator.serviceWorker.controller) { navigator.serviceWorker.controller.postMessage({ type:'SKIP_WAITING' }); window.location.reload(); } }
-    function dismissUpdate(button) { button.closest('#updateBanner').remove(); }
-
-    // Initialize
-    document.addEventListener('DOMContentLoaded', () => {
-      setupPWAAssets();
-      updateStats();
-      checkNotificationPermission();
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const action = urlParams.get('action');
-      if (action === 'focus') setTimeout(quickIntervention, 1000);
-      else if (action === 'start') setTimeout(startFocusSession, 1000);
-      else if (action === 'emergency') setTimeout(emergencyRefocus, 500);
-
-      // periodic focus ping
-      setInterval(() => {
-        if (focusState.notificationsEnabled) showNotification('Focus Check', 'What are you working on right now?');
-      }, 15 * 60 * 1000);
-
-      // Doom scrolling heuristic — only sees this PWA; for browser-wide detection, use the extension.
-      let scrollCount = 0; let scrollTimer;
-      window.addEventListener('scroll', () => {
-        scrollCount++; clearTimeout(scrollTimer);
-        scrollTimer = setTimeout(() => {
-          if (scrollCount > 10) {
-            setTimeout(() => {
-              if (typeof FOCUS_TASKS !== 'undefined' && FOCUS_TASKS.getActiveTitle) {
-                const activeTitle = FOCUS_TASKS.getActiveTitle();
-                if (activeTitle) {
-                  showIntervention(`You're in a focus session: “${activeTitle}”. Pause the scroll and get back to it?`);
-                } else {
-                  showIntervention('Rapid scrolling detected! Are you doom scrolling?');
-                }
-              } else {
-                showIntervention('Rapid scrolling detected! Are you doom scrolling?');
-              }
-            }, 2000);
-          }
-          scrollCount = 0;
-        }, 1000);
-      });
-
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-          setTimeout(() => { if (!document.hidden) showNotification('Welcome back!', 'Did you stay focused on other tabs?'); }, 5000);
-        }
-      });
-
-      // Bootstrap Tasks/Calendar
-      FOCUS_TASKS.bootstrap();
-    });
-
-    function setupPWAAssets() {
-      window.addEventListener('online', () => {
-        document.getElementById('offlineIndicator').style.display = 'none';
-        showNotification('Back Online!', 'Focus data will sync now');
-        if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
-          navigator.serviceWorker.ready.then((registration) => registration.sync.register('focus-data-sync'));
-        }
-      });
-      window.addEventListener('offline', () => { document.getElementById('offlineIndicator').style.display = 'block'; });
-
-      if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-        document.body.classList.add('pwa-mode');
-        const ip = document.getElementById('installPrompt'); if (ip) ip.style.display='none';
-      } else {
-        setTimeout(() => { if (!localStorage.getItem('install-dismissed')) showInstallPrompt(); }, 5000);
-      }
-    }
-
-    // Notifications
-    async function requestNotifications() {
-      if ('Notification' in window) {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          focusState.notificationsEnabled = true;
-          const n = document.getElementById('notificationAlert'); if (n) n.style.display='none';
-          showNotification('Focus System Activated!', "You'll now get focus reminders");
-        }
-      }
-    }
-    function checkNotificationPermission() {
-      if ('Notification' in window && Notification.permission === 'granted') {
-        focusState.notificationsEnabled = true;
-        const n = document.getElementById('notificationAlert'); if (n) n.style.display='none';
-      }
-    }
-    function showNotification(title, body) {
-      if (focusState.notificationsEnabled) {
-        new Notification(title, {
-          body,
-          icon:'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNiIgZmlsbD0iIzNiODJmNiIvPjxzdmcgeD0iMTYiIHk9IjE2IiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjMiLz48cGF0aCBkPSJNMTIgMVYzTTEyIDIxVjJNNC4yMiA0LjIybDEuNDIgMS40Mk0xOC4zNiAxOC4zNmwxLjQyIDEuNDJNMTEgMTJIM00yMSAxMmgyTTQuMjIgMTkuNzhsMS40Mi0xLjQyTTE4LjM2IDUuNjRsMS40Mi0xLjQyIi8+PC9zdmc+PC9zdmc+',
-          tag:'focus-reminder', requireInteraction:true
-        });
-      }
-    }
-
-    // Focus session
-    function startFocusSession() {
-      focusState.isActive = true; focusState.startTime = Date.now();
-      document.getElementById('focusIndicator').classList.add('active');
-      document.getElementById('statusText').textContent = 'Focus session active';
-      updateTimer(); showNotification('Focus Session Started!', 'Time to get things done 🎯');
-    }
-    function setFocusReminder() {
-      const minutes = prompt('Remind me every how many minutes? (default: 15)', '15');
-      if (minutes) {
-        clearInterval(focusState.reminderInterval);
-        focusState.reminderInterval = setInterval(() => { showIntervention(`Focus check! It's been ${minutes} minutes.`); }, parseInt(minutes)*60*1000);
-        showNotification('Reminders Set!', `You'll get focus checks every ${minutes} minutes`);
-      }
-    }
-    function quickIntervention() {
-      const messages = [
-        'What should you be working on right now?','Are you being productive or just busy?','Is this the most important thing you could be doing?',
-        'Stop scrolling. Start doing.','Your goals won\'t achieve themselves!','Focus time! What\'s the ONE thing that matters most?'
-      ];
-      const msg = messages[Math.floor(Math.random()*messages.length)];
-      showIntervention(msg); focusState.interventions++; updateStats(); saveStats();
-    }
-    function emergencyRefocus() { showIntervention('🚨 EMERGENCY REFOCUS! Drop everything and focus on what matters most right NOW!'); focusState.interventions++; updateStats(); saveStats(); }
-    function showIntervention(m) { document.getElementById('interventionMessage').textContent = m; document.getElementById('interventionPopup').style.display='flex'; document.getElementById('currentTask').focus(); }
-
-    // Quadrant handler with optional auto task creation + timer start
-    function selectQuadrant(q) {
-      const names=['','DO NOW','SCHEDULE','DELEGATE','ELIMINATE'];
-      const messages=[
-        '',
-        'This is urgent AND important - handle it immediately!',
-        'This is important but not urgent - schedule dedicated time for it.',
-        'This is urgent but not important for you - find someone else to handle it.',
-        'This is neither urgent nor important - eliminate or minimize this activity!'
-      ];
-      showIntervention(`${names[q]}: ${messages[q]}`);
-
-      if (!AUTO_TASK_FROM_MATRIX || typeof FOCUS_TASKS === 'undefined' || !FOCUS_TASKS.quickAddAndStart) return;
-
-      const title = prompt(`Name the task for "${names[q]}" (or leave blank to skip):`, '');
-      if (!title) return;
-
-      const todayISO = new Date().toISOString().slice(0,10);
-      const plusDays = (n)=>{ const d = new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
-
-      if (q===1){ // DO NOW
-        FOCUS_TASKS.quickAddAndStart(title, { projects:['DoNow'], labels:['q1','focus'], priority:1, due: todayISO });
-      } else if (q===2){ // SCHEDULE
-        FOCUS_TASKS.quickAddAndStart(title, { projects:['Schedule'], labels:['q2','plan'], priority:2, due: plusDays(1) });
-      } else if (q===3){ // DELEGATE
-        FOCUS_TASKS.quickAddAndStart(title, { projects:['Delegate'], labels:['q3','handoff'], priority:3, due: plusDays(1) });
-      } else if (q===4){ // ELIMINATE
-        FOCUS_TASKS.quickAddAndStart('Eliminate: ' + title, { projects:['Eliminate'], labels:['q4','cut'], priority:4, due: todayISO });
-      }
-    }
-
-    function commitToTask() {
-      const task = document.getElementById('currentTask').value.trim();
-      if (task) {
-        focusState.tasksCompleted++; startFocusSession(); closeIntervention();
-        showNotification('Task Committed!', `Working on: ${task}`); updateStats(); saveStats();
-      } else alert('Please enter what you\'ll work on!');
-    }
-    function setBreakTimer() {
-      closeIntervention(); showNotification('5 Minute Break', 'Rest up, then get back to work!');
-      setTimeout(() => { showIntervention('Break\'s over! Time to get back to productive work!'); }, 5*60*1000);
-    }
-    function closeIntervention() { document.getElementById('interventionPopup').style.display='none'; document.getElementById('currentTask').value=''; }
-    function updateTimer() {
-      if (focusState.isActive && focusState.startTime) {
-        const elapsed = Math.floor((Date.now() - focusState.startTime)/1000);
-        const m = Math.floor(elapsed/60), s = elapsed%60;
-        document.getElementById('timerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-        if (elapsed>0 && elapsed%60===0) { focusState.totalFocusTime++; updateStats(); saveStats(); }
-        requestAnimationFrame(updateTimer);
-      }
-    }
-    function updateStats() {
-      document.getElementById('focusTime').textContent = focusState.totalFocusTime;
-      document.getElementById('interventions').textContent = focusState.interventions;
-      document.getElementById('tasksCompleted').textContent = focusState.tasksCompleted;
-    }
-    function saveStats() {
-      localStorage.setItem('totalFocusTime', String(focusState.totalFocusTime));
-      localStorage.setItem('interventions', String(focusState.interventions));
-      localStorage.setItem('tasksCompleted', String(focusState.tasksCompleted));
-    }
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key==='i'){ e.preventDefault(); quickIntervention(); }
-        if (e.key==='f'){ e.preventDefault(); startFocusSession(); }
-      }
-      if (e.key === 'Escape') closeIntervention();
-    });
-  </script>
-
-  <!-- ============ Tasks + Calendar + Time Tracking + 24h Day Planner ============ -->
-  <script>
-    const FOCUS_TASKS = (() => {
-      const TASKS_KEY = 'mbps_focus_tasks_v1';
-      const META_KEY  = 'mbps_focus_meta_v1';
-      const ACTIVE_TIMER_KEY = 'mbps_focus_active_timer_v1';
-
-      const nowISO = () => new Date().toISOString().slice(0,10);
-      const uid = ()=>'t_'+Math.random().toString(36).slice(2,9);
-      const PRIORITIES = {1:'P1',2:'P2',3:'P3',4:'P4'};
-      const weekdayIdx = { sun:0, mon:1, tue:2, wed:3, thu:4, fri:5, sat:6 };
-
-      const db = {
-        load: ()=>JSON.parse(localStorage.getItem(TASKS_KEY)||'[]'),
-        save: (t)=>{ localStorage.setItem(TASKS_KEY, JSON.stringify(t)); render(); },
-        loadMeta: ()=>JSON.parse(localStorage.getItem(META_KEY)||'{"projects":[],"labels":[]}'),
-        saveMeta: (m)=>localStorage.setItem(META_KEY, JSON.stringify(m))
-      };
-
-      // Active per-task timer
-      const ACTIVE_TIMER = {
-        taskId: null, startedAt: null, tickHandle: null,
-        load(){ const raw = JSON.parse(localStorage.getItem(ACTIVE_TIMER_KEY)||'null'); if(raw&&raw.taskId&&raw.startedAt){ this.taskId=raw.taskId; this.startedAt=raw.startedAt; } },
-        save(){ localStorage.setItem(ACTIVE_TIMER_KEY, JSON.stringify({taskId:this.taskId, startedAt:this.startedAt})); },
-        liveSeconds(){ return this.startedAt ? (Date.now() - new Date(this.startedAt).getTime())/1000 : 0; },
-        start(taskId){ if(this.taskId) this.stop(); this.taskId=taskId; this.startedAt=new Date().toISOString(); this.save(); this._startTicker(); },
-        stop(){
-          if(!this.taskId || !this.startedAt) return;
-          const tasks = db.load(); const t = tasks.find(x=>x.id===this.taskId);
-          if(t){ t.timeLogs = Array.isArray(t.timeLogs)?t.timeLogs:[]; t.timeLogs.push({ start:this.startedAt, end:new Date().toISOString() }); db.save(tasks); }
-          this.taskId=null; this.startedAt=null; this.save(); this._stopTicker();
-        },
-        _startTicker(){
-          this._stopTicker();
-          this.tickHandle = setInterval(()=>{
-            const el = document.querySelector(`.time-badge[data-time="${this.taskId}"]`);
-            if(el){
-              const tasks = db.load(); const t = tasks.find(x=>x.id===this.taskId);
-              const secs = (t? totalSeconds(t):0) + this.liveSeconds();
-              el.textContent = '⏱ ' + fmtHM(secs);
+  // ---------------- PWA SW ----------------
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').then(reg=>{
+        // Listen for updates to show in-app banner (optional)
+        reg.addEventListener('updatefound', ()=>{
+          const nw = reg.installing;
+          nw?.addEventListener('statechange', ()=>{
+            if (nw.state==='installed' && navigator.serviceWorker.controller){
+              showToast('🔄 App Update Available — pull to refresh or reopen to update.');
             }
-          },1000);
-        },
-        _stopTicker(){ if(this.tickHandle){ clearInterval(this.tickHandle); this.tickHandle=null; } }
-      };
-      ACTIVE_TIMER.load(); if (ACTIVE_TIMER.taskId && ACTIVE_TIMER.startedAt) ACTIVE_TIMER._startTicker();
-
-      // Parser
-      function parseQuickAdd(input){
-        const parts = input.trim().split(/\s+/);
-        const labels=new Set(), projects=new Set(); let priority=3, titleParts=[], due=null, recur=null;
-        let i=0;
-        while(i<parts.length){
-          const w=parts[i];
-          if(/^#/.test(w)&&w.length>1){ projects.add(w.slice(1)); i++; continue; }
-          if(/^@/.test(w)&&w.length>1){ labels.add(w.slice(1)); i++; continue; }
-          if(/^P[1-4]$/i.test(w)){ priority = Number(w[1]); i++; continue; }
-          if(/^due:\d{4}-\d{2}-\d{2}$/i.test(w)){ due = w.split(':')[1]; i++; continue; }
-          if(w.toLowerCase()==='every'){
-            const rest = parts.slice(i+1).join(' ').toLowerCase();
-            const m = rest.match(/^(weekday|day|week|month|mon|tue|wed|thu|fri|sat|sun|(?:mon|tue|wed|thu|fri|sat|sun)(?:,\s*(?:mon|tue|wed|thu|fri|sat|sun))*)/);
-            if(m){ recur = m[0].replace(/\s+/g,''); const consumed = m[0].split(/\s+/).length + 1; i+=consumed; continue; }
-          }
-          titleParts.push(w); i++;
-        }
-        return { title:titleParts.join(' ').trim()||'Untitled', projects:[...projects], labels:[...labels], priority, due, recur };
-      }
-
-      // Recurrence
-      function nextDateForRule(fromISO, rule){
-        if(!rule) return null;
-        const d = new Date(fromISO+'T00:00:00'); const addDays=n=>d.setDate(d.getDate()+n);
-        if(rule==='day'){ addDays(1); }
-        else if(rule==='week'){ addDays(7); }
-        else if(rule==='month'){ d.setMonth(d.getMonth()+1); }
-        else if(rule==='weekday'){ do{ addDays(1);} while([0,6].includes(d.getDay())); }
-        else if(rule.includes(',')){ const set=rule.split(',').map(s=>s.trim()).map(x=>weekdayIdx[x]).filter(x=>x!=null);
-          for(let n=1;n<8;n++){ const p=new Date(fromISO+'T00:00:00'); p.setDate(p.getDate()+n); if(set.includes(p.getDay())){ addDays(n); break; } }
-        } else if(weekdayIdx.hasOwnProperty(rule)){ const target=weekdayIdx[rule];
-          for(let n=1;n<8;n++){ const p=new Date(fromISO+'T00:00:00'); p.setDate(p.getDate()+n); if(p.getDay()===target){ addDays(n); break; } }
-        } else return null;
-        return d.toISOString().slice(0,10);
-      }
-
-      // Time utils & card HTML
-      function totalSeconds(t){
-        const logs = Array.isArray(t.timeLogs)?t.timeLogs:[];
-        return logs.reduce((s,L)=>s+(L.end? (new Date(L.end)-new Date(L.start))/1000 : 0),0);
-      }
-      function fmtHM(sec){
-        sec = Math.max(0, Math.floor(sec)); const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60);
-        return (h>0? `${h}h ` : '') + `${m}m`;
-      }
-      function pillCls(p){ return 'pill '+(p===1?'p1':p===2?'p2':p===3?'p3':'p4'); }
-      function itemHTML(t){
-        const dueTxt=t.due?`Due ${t.due}`:'No due', recurTxt=t.recur?` • every ${t.recur}`:'';
-        const proj=t.projects.map(p=>`<span class="pill">${p}</span>`).join(' ');
-        const lab =t.labels.map(l=>`<span class="pill">${l}</span>`).join(' ');
-        const secs = totalSeconds(t) + (ACTIVE_TIMER.taskId===t.id ? ACTIVE_TIMER.liveSeconds() : 0);
-        const timeStr = fmtHM(secs);
-
-        return `<li class="task-card draggable" draggable="true" data-id="${t.id}">
-          <input type="checkbox" class="mt-1 task-done" ${t.completedAt?'checked':''} />
-          <div style="flex:1;">
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-              <span class="task-title">${t.title}</span>
-              <span class="${pillCls(t.priority)}">${PRIORITIES[t.priority]}</span>
-              <span class="time-badge" data-time="${t.id}">⏱ ${timeStr}</span>
-            </div>
-            <div class="task-meta"><span>${dueTxt}${recurTxt}</span> ${proj} ${lab}</div>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:6px; min-width:120px;">
-            <button class="timer-btn startstop-btn ${ACTIVE_TIMER.taskId===t.id?'running':''}">
-              ${ACTIVE_TIMER.taskId===t.id?'■ Stop':'▶ Start'}
-            </button>
-            <button class="timer-btn add15-btn">+15m</button>
-            <button class="btn btn-small btn-ghost resched-btn">Reschedule</button>
-            <button class="btn btn-small btn-ghost del-btn">Delete</button>
-          </div>
-        </li>`;
-      }
-
-      // Day planner helpers
-      function isoAtHour(dateISO, hour){ return `${dateISO}T${String(hour).padStart(2,'0')}:00:00`; }
-      function scheduleExisting(id, dateISO, hour, dur=60){
-        const tasks = db.load(); const t = tasks.find(x=>x.id===id); if(!t) return;
-        const start = new Date(isoAtHour(dateISO, hour));
-        const end = new Date(start.getTime() + dur*60000);
-        t.start = start.toISOString(); t.end = end.toISOString(); t.due = dateISO;
-        db.save(tasks);
-      }
-      function scheduleNew(title, dateISO, hour, dur=60, priority=3){
-        const tasks = db.load();
-        const start = new Date(isoAtHour(dateISO, hour));
-        const end = new Date(start.getTime() + dur*60000);
-        const t={ id:uid(), title, projects:['Schedule'], labels:['calendar'], priority,
-                  due:dateISO, recur:null, createdAt:new Date().toISOString(),
-                  completedAt:null, timeLogs:[], start:start.toISOString(), end:end.toISOString() };
-        tasks.push(t); db.save(tasks);
-      }
-      function durationMinutes(t){
-        if(!t.start || !t.end) return 0;
-        return Math.max(0, Math.round((new Date(t.end)-new Date(t.start))/60000));
-      }
-
-      // State/DOM
-      let state = { view:'today', selectedDate: nowISO(), selectedProject:'', selectedLabel:'', priority:'', calMode:'month' };
-      const $ = s=>document.querySelector(s);
-
-      const quickAdd = $('#quickAdd'), addTaskBtn=$('#addTaskBtn');
-      const taskList = $('#taskList'), emptyState=$('#emptyState'), listTitle=$('#listTitle');
-      const projectFilter=$('#projectFilter'), labelFilter=$('#labelFilter'), priorityFilter=$('#priorityFilter');
-
-      const monthLabel=$('#monthLabel'), calendarGrid=$('#calendarGrid'), todayIso=$('#todayIso');
-      const calendarDowHeader=$('#calendarDowHeader');
-      const selectedDateLabel=$('#selectedDateLabel'), dayTaskList=$('#dayTaskList');
-      const monthMode = $('#monthMode'), dayMode = $('#dayMode');
-      const dayPlanner = $('#dayPlanner');
-
-      // View buttons
-      $('#todayViewBtn').onclick    = ()=>{ state.view='today'; render(); };
-      $('#upcomingViewBtn').onclick = ()=>{ state.view='upcoming'; render(); };
-      $('#projectsViewBtn').onclick = ()=>{ state.view='projects'; render(); };
-      $('#labelsViewBtn').onclick   = ()=>{ state.view='labels'; render(); };
-
-      // Add task
-      addTaskBtn.onclick = ()=>{
-        const p = parseQuickAdd(quickAdd.value); if(!p.title) return;
-        const tasks = db.load();
-        const t = { id:uid(), title:p.title, projects:p.projects, labels:p.labels, priority:p.priority,
-                    due:p.due||null, recur:p.recur||null, createdAt:new Date().toISOString(), completedAt:null, timeLogs:[] };
-        tasks.push(t); db.save(tasks);
-        const meta=db.loadMeta(); p.projects.forEach(x=>{ if(!meta.projects.includes(x)) meta.projects.push(x); }); p.labels.forEach(x=>{ if(!meta.labels.includes(x)) meta.labels.push(x); }); db.saveMeta(meta);
-        quickAdd.value='';
-      };
-
-      // Filters
-      projectFilter.onchange = ()=>{ state.selectedProject=projectFilter.value; renderListOnly(); };
-      labelFilter.onchange   = ()=>{ state.selectedLabel=labelFilter.value; renderListOnly(); };
-      priorityFilter.onchange= ()=>{ state.priority=priorityFilter.value; renderListOnly(); };
-
-      function taskMatchesFilters(t){
-        if(state.selectedProject && !t.projects.includes(state.selectedProject)) return false;
-        if(state.selectedLabel && !t.labels.includes(state.selectedLabel)) return false;
-        if(state.priority && String(t.priority)!==state.priority) return false;
-        return true;
-      }
-      const isUpcoming = iso => iso && iso > nowISO();
-
-      function tasksForView(tasks){
-        if(state.view==='today'){ listTitle.textContent='Today'; return tasks.filter(t=>!t.completedAt && (t.due ? t.due <= nowISO() : true)).filter(taskMatchesFilters); }
-        if(state.view==='upcoming'){ listTitle.textContent='Upcoming'; return tasks.filter(t=>!t.completedAt && isUpcoming(t.due)).filter(taskMatchesFilters).sort((a,b)=>(a.due||'9999')<(b.due||'9999')?-1:1); }
-        if(state.view==='projects'){ listTitle.textContent= state.selectedProject?`Project: ${state.selectedProject}`:'All Projects'; return tasks.filter(t=>!t.completedAt).filter(taskMatchesFilters); }
-        if(state.view==='labels'){ listTitle.textContent= state.selectedLabel?`Label: ${state.selectedLabel}`:'All Labels'; return tasks.filter(t=>!t.completedAt).filter(taskMatchesFilters); }
-        if(state.view==='calendar'){ listTitle.textContent='Calendar (All Tasks)'; return tasks.filter(taskMatchesFilters); }
-        return tasks;
-      }
-
-      function renderListOnly(){
-        const tasks = db.load();
-        const items = tasksForView(tasks);
-        taskList.innerHTML = items.map(itemHTML).join('');
-        emptyState.style.display = items.length? 'none':'block';
-
-        // Done toggle
-        taskList.querySelectorAll('.task-done').forEach(cb=>{
-          cb.onchange = (e)=>{
-            const id = e.target.closest('li').dataset.id;
-            const tasks = db.load(); const t = tasks.find(x=>x.id===id); if(!t) return;
-            if(e.target.checked){
-              t.completedAt = new Date().toISOString();
-              if(t.recur && t.due){
-                const next = nextDateForRule(t.due, t.recur);
-                if(next) tasks.push({...t, id:uid(), completedAt:null, due:next, createdAt:new Date().toISOString(), timeLogs:[], start:undefined, end:undefined});
-              }
-              if (ACTIVE_TIMER.taskId === id) ACTIVE_TIMER.stop();
-            } else { t.completedAt=null; }
-            db.save(tasks);
-          };
-        });
-
-        // Delete
-        taskList.querySelectorAll('.del-btn').forEach(b=>{
-          b.onclick = ()=>{
-            const id = b.closest('li').dataset.id;
-            if (ACTIVE_TIMER.taskId === id) ACTIVE_TIMER.stop();
-            const tasks = db.load().filter(x=>x.id!==id);
-            db.save(tasks);
-          };
-        });
-
-        // Reschedule (date)
-        taskList.querySelectorAll('.resched-btn').forEach(b=>{
-          b.onclick = ()=>{
-            const id = b.closest('li').dataset.id;
-            const iso = prompt('New due date (YYYY-MM-DD):', ''); if(!iso) return;
-            const tasks = db.load(); const t=tasks.find(x=>x.id===id);
-            if(t){ t.due=iso; db.save(tasks); }
-          };
-        });
-
-        // Start/Stop per-task timer
-        taskList.querySelectorAll('.startstop-btn').forEach(btn=>{
-          btn.onclick = ()=>{
-            const id = btn.closest('li').dataset.id;
-            if (ACTIVE_TIMER.taskId === id) ACTIVE_TIMER.stop(); else ACTIVE_TIMER.start(id);
-            renderListOnly();
-          };
-        });
-
-        // +15m quick log
-        taskList.querySelectorAll('.add15-btn').forEach(btn=>{
-          btn.onclick = ()=>{
-            const id = btn.closest('li').dataset.id;
-            const tasks = db.load(); const t = tasks.find(x=>x.id===id); if(!t) return;
-            t.timeLogs = Array.isArray(t.timeLogs)?t.timeLogs:[];
-            const end = new Date(); const start = new Date(end.getTime() - 15*60*1000);
-            t.timeLogs.push({ start:start.toISOString(), end:end.toISOString() });
-            db.save(tasks);
-          };
-        });
-
-        // Make list items draggable into day planner
-        taskList.querySelectorAll('.task-card.draggable').forEach(li=>{
-          li.addEventListener('dragstart', e=>{
-            e.dataTransfer.setData('text/plain', li.dataset.id);
           });
         });
-      }
+      });
+      navigator.serviceWorker.addEventListener('message', (e)=>{
+        if (e.data?.type==='SYNC_SUCCESS') showToast('Data synced');
+      });
+    });
+  }
 
-      // Calendar & Day Planner
-      let calYear, calMonth;
-      function monthName(y,m){ return new Date(y,m,1).toLocaleString(undefined,{month:'long',year:'numeric'}); }
+  // ---------------- Helpers ----------------
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+  function showToast(msg){ try{ if(state.notificationsEnabled) new Notification('Focus', {body:msg,icon:'./icons/icon-192.png'}); }catch{} }
+  function save(){ localStorage.setItem('tasks', JSON.stringify(state.tasks)); localStorage.setItem('events', JSON.stringify(state.events)); localStorage.setItem('totalFocusTime', state.totalFocusTime); localStorage.setItem('interventions', state.interventions); localStorage.setItem('tasksCompleted', state.tasksCompleted); }
 
-      function renderCalendar(){
-        monthLabel.textContent = state.calMode==='month'
-          ? monthName(calYear, calMonth)
-          : `Plan for ${state.selectedDate}`;
+  // ---------------- Tabs (mobile) ----------------
+  function switchView(name){
+    state.view = name;
+    ['matrix','tasks','calendar','stats'].forEach(v=>{
+      $('#view-'+v).style.display = (v===name || window.innerWidth>=900)?'block':'none';
+      const btn = document.querySelector(`.tabbtn[data-view="${v}"]`); if(btn) btn.classList.toggle('active', v===name);
+    });
+    if(name==='calendar') requestAnimationFrame(()=>scrollToNow());
+  }
+  window.addEventListener('resize', ()=> switchView(state.view));
+  switchView('matrix');
 
-        todayIso.textContent = nowISO();
+  // ---------------- Notifications ----------------
+  function requestNotifications(){
+    if(!('Notification' in window)) return;
+    Notification.requestPermission().then(p=>{
+      if(p==='granted'){ state.notificationsEnabled=true; showToast('Focus reminders enabled'); }
+    });
+  }
+  // auto-enable toggle UI if already granted
+  if('Notification' in window && Notification.permission==='granted') state.notificationsEnabled=true;
 
-        // Toggle month grid / day planner visibility
-        const showMonth = state.calMode==='month';
-        calendarGrid.style.display   = showMonth ? 'grid' : 'none';
-        calendarDowHeader.style.display = showMonth ? 'grid' : 'none';
-        dayPlanner.style.display     = showMonth ? 'none' : 'block';
+  // ---------------- Focus Timer ----------------
+  function startFocusSession(){
+    state.isActive = true; state.startTime = Date.now();
+    $('#focusIndicator').classList.add('active'); $('#statusText').textContent = 'Focus session active';
+    tick();
+    if(state.notificationsEnabled) new Notification('Focus Session Started!', { body:'Time to get things done 🎯', icon:'./icons/icon-192.png'});
+  }
+  function tick(){
+    if(!state.isActive) return;
+    const s = Math.floor((Date.now()-state.startTime)/1000);
+    const m = Math.floor(s/60), ss = String(s%60).padStart(2,'0');
+    $('#timerDisplay').textContent = `${String(m).padStart(2,'0')}:${ss}`;
+    if(s>0 && s%60===0){ state.totalFocusTime++; updateStats(); save(); }
+    requestAnimationFrame(tick);
+  }
+  function setFocusReminder(){
+    const mins = parseInt(prompt('Remind every how many minutes?','15')); if(!mins) return;
+    setInterval(()=> showIntervention(`Focus check! It’s been ${mins} minutes.`), mins*60*1000);
+    showToast(`Reminders every ${mins} min`);
+    requestNotifications();
+  }
+  function quickIntervention(){
+    const msgs=['What should you be working on right now?','Are you being productive or just busy?','Stop scrolling. Start doing.','Focus time! What’s the ONE thing?'];
+    showIntervention(msgs[Math.floor(Math.random()*msgs.length)]);
+    state.interventions++; updateStats(); save();
+  }
+  function emergencyRefocus(){
+    showIntervention('🚨 EMERGENCY REFOCUS! Drop everything and focus on what matters most right NOW!');
+    state.interventions++; updateStats(); save();
+  }
+  function showIntervention(text){
+    $('#interventionMessage').textContent = text;
+    openSheet('#interventionPopup');
+    $('#currentTask').focus();
+  }
+  function closeIntervention(){ closeSheet('#interventionPopup'); $('#currentTask').value=''; }
+  function commitToTask(){
+    const t = $('#currentTask').value.trim(); if(!t){ alert('Enter what you will work on'); return; }
+    state.tasksCompleted++; startFocusSession(); closeIntervention(); showToast(`Working on: ${t}`); updateStats(); save();
+  }
+  function setBreakTimer(){
+    closeIntervention(); showToast('5-minute break started');
+    setTimeout(()=> showIntervention('Break’s over! Time to get back to it!'), 5*60*1000);
+  }
 
-        calendarGrid.innerHTML = '';
+  // ---------------- Tasks ----------------
+  function addTask(){
+    const v = $('#taskInput').value.trim(); if(!v) return;
+    state.tasks.push({ id:crypto.randomUUID(), title:v, done:false, created:Date.now() });
+    $('#taskInput').value=''; renderTasks(); save();
+  }
+  function toggleTask(id){
+    const t = state.tasks.find(x=>x.id===id); if(!t) return; t.done=!t.done; if(t.done) state.tasksCompleted++; renderTasks(); updateStats(); save();
+  }
+  function toCalendar(id){
+    const t = state.tasks.find(x=>x.id===id); if(!t) return;
+    openQuickAdd(t.title);
+  }
+  function deleteTask(id){
+    state.tasks = state.tasks.filter(x=>x.id!==id); renderTasks(); save();
+  }
+  function renderTasks(){
+    const root = $('#taskList'); root.innerHTML='';
+    if(state.tasks.length===0){ root.innerHTML='<div class="muted" style="padding:8px">No tasks yet.</div>'; return;}
+    state.tasks.forEach(t=>{
+      const el = document.createElement('div'); el.className='task';
+      el.innerHTML = `
+        <input type="checkbox" ${t.done?'checked':''} style="width:20px;height:20px" aria-label="Complete" />
+        <div class="title" style="${t.done?'text-decoration:line-through;color:#9aa9c4':''}">${t.title}</div>
+        <span class="chip">Task</span>
+        <button class="btn ghost" title="Schedule" aria-label="Add to calendar">📅</button>
+        <button class="btn ghost" title="Delete" aria-label="Delete">🗑</button>
+      `;
+      const [cb,, , btnCal, btnDel] = el.querySelectorAll('input, .title, .chip, button, button');
+      cb.addEventListener('change',()=>toggleTask(t.id));
+      btnCal.addEventListener('click',()=>toCalendar(t.id));
+      btnDel.addEventListener('click',()=>deleteTask(t.id));
+      root.appendChild(el);
+    });
+    $('#statTotalTasks').textContent = state.tasks.length;
+  }
 
-        if (showMonth){
-          const first = new Date(calYear, calMonth, 1);
-          const startIdx = first.getDay();
-          const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  // ---------------- Day Planner ----------------
+  const grid = $('#plannerGrid');
+  function setDayLabel(){
+    const d = state.currentDay;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const cmp = new Date(d); cmp.setHours(0,0,0,0);
+    const same = cmp.getTime()===today.getTime();
+    const options={weekday:'short', month:'short', day:'numeric'};
+    $('#plannerDayLabel').textContent = (same?'Today — ':'') + d.toLocaleDateString([], options);
+  }
+  function hoursMarkup(){
+    let html=''; for(let h=0;h<24;h++){ const lab = (h%12||12)+(h<12?'a':'p'); html+=`<div class="hour" data-hour="${h}" data-h="${lab}"></div>`; }
+    grid.innerHTML = html + `<div class="nowline" id="nowLine" style="display:none"></div>`;
+  }
+  function renderEvents(){
+    // clear existing
+    grid.querySelectorAll('.event').forEach(e=>e.remove());
+    const dayKey = dayId(state.currentDay);
+    const events = state.events.filter(ev=>ev.day===dayKey);
+    events.forEach(ev=> placeEvent(ev));
+    // show now line if same day
+    const now = new Date(); const show = dayId(now)===dayKey;
+    const nl = $('#nowLine'); nl.style.display = show?'block':'none';
+    if(show){
+      const mins = now.getHours()*60 + now.getMinutes();
+      nl.style.top = (mins*56/60) + 'px';
+    }
+    $('#statTodayEvents').textContent = events.length;
+  }
+  function placeEvent(ev){
+    const startM = ev.start; const endM = ev.end;
+    const top = startM * 56 / 60;
+    const height = Math.max(30, (endM - startM) * 56 / 60);
+    const el = document.createElement('div'); el.className='event';
+    el.style.top = `${top}px`; el.style.height = `${height}px`;
+    el.innerHTML = `
+      <div>
+        <div>${ev.title}</div>
+        <div class="ev-time">${minToLabel(startM)}–${minToLabel(endM)}</div>
+      </div>
+      <div class="ev-chip">Focus</div>
+    `;
+    grid.appendChild(el);
+  }
+  function minToLabel(m){ const h = Math.floor(m/60), mm = m%60; const ap = h<12?'a':'p'; const hh = h%12||12; return `${hh}:${String(mm).padStart(2,'0')}${ap}`; }
+  function labelToMin(val){ const [H,M] = val.split(':').map(n=>+n); return H*60 + M; }
 
-          const tasks = db.load();
-          const byDate = tasks.reduce((m,t)=>{ if(t.due){ (m[t.due]=m[t.due]||[]).push(t);} return m; },{});
+  function dayId(d){ const dt = new Date(d); dt.setHours(0,0,0,0); return dt.toISOString().slice(0,10); }
+  function shiftDay(n){ state.currentDay.setDate(state.currentDay.getDate()+n); setDayLabel(); renderEvents(); }
+  function goToday(){ state.currentDay = new Date(); setDayLabel(); renderEvents(); scrollToNow(); }
+  function scrollToNow(){ const dayKey = dayId(new Date()); if(dayId(state.currentDay)!==dayKey) return; const y = (new Date().getHours()*60 + new Date().getMinutes())*56/60 - 140; grid.scrollTo({top: Math.max(0,y), behavior:'smooth'}); }
 
-          for(let i=0;i<startIdx;i++){
-            const blank=document.createElement('div'); blank.className='cal-day'; blank.style.opacity='.2';
-            calendarGrid.appendChild(blank);
-          }
-          for(let d=1; d<=daysInMonth; d++){
-            const iso=new Date(calYear, calMonth, d).toISOString().slice(0,10);
-            const cell=document.createElement('div'); cell.className='cal-day';
-            if(iso===nowISO()) cell.classList.add('today');
+  function tapHour(e){
+    // Tap anywhere → open Quick Add with rounded start time
+    const rect = grid.getBoundingClientRect();
+    const y = e.clientY - rect.top + grid.scrollTop;
+    const mins = Math.max(0, Math.min(23*60+59, Math.round((y/56)*60/15)*15)); // snap 15m
+    openQuickAdd('', mins);
+  }
 
-            const top=document.createElement('div'); top.className='cal-date'; top.textContent=String(d);
-            cell.appendChild(top);
+  // Quick Add
+  function openQuickAdd(prefillTitle='', startMin=null){
+    $('#qa-title-input').value = prefillTitle || '';
+    // set default time to rounded next 15m or the tapped minute
+    const base = startMin!=null ? startMin : Math.round(((new Date().getHours()*60 + new Date().getMinutes())+7.5)/15)*15;
+    const hh = String(Math.floor(base/60)).padStart(2,'0'); const mm = String(base%60).padStart(2,'0');
+    $('#qa-start').value = `${hh}:${mm}`;
+    openSheet('#quickSheet');
+  }
+  function saveQuickAdd(){
+    const title = $('#qa-title-input').value.trim(); if(!title){ alert('Enter a title'); return; }
+    const t = $('#qa-start').value || '09:00';
+    const dur = Math.max(15, +($('#qa-dur').value||30));
+    const start = labelToMin(t); const end = Math.min(24*60, start+dur);
+    const ev = { id:crypto.randomUUID(), title, start, end, day: dayId(state.currentDay) };
+    state.events.push(ev); save(); closeQuickAdd(); renderEvents();
+  }
+  function closeQuickAdd(){ closeSheet('#quickSheet'); }
 
-            const dots=document.createElement('div'); dots.className='dots';
-            (byDate[iso]||[]).slice(0,6).forEach(t=>{
-              const dot=document.createElement('span'); dot.className='dot';
-              dot.style.background = ({1:'#ef4444',2:'#f97316',3:'#eab308',4:'#9ca3af'})[t.priority]||'#9ca3af';
-              dots.appendChild(dot);
-            });
-            cell.appendChild(dots);
+  // Sheets
+  function openSheet(sel){ const s=$(sel); s.classList.add('open'); s.setAttribute('aria-hidden','false'); }
+  function closeSheet(sel){ const s=$(sel); s.classList.remove('open'); s.setAttribute('aria-hidden','true'); }
 
-            // Click a day to switch to Day mode for that date
-            cell.onclick = ()=>{
-              state.selectedDate=iso; selectedDateLabel.textContent=iso;
-              state.view='calendar'; renderListOnly();
-              state.calMode='day'; renderCalendar();
-            };
-            calendarGrid.appendChild(cell);
-          }
-          return; // month mode done
-        }
+  // ---------------- Matrix actions ----------------
+  function selectQuadrant(q){
+    const names=['','DO NOW','SCHEDULE','DELEGATE','ELIMINATE'];
+    const tips=['',
+      'Urgent & important — do it immediately.',
+      'Important, not urgent — schedule time.',
+      'Urgent, not important — delegate it.',
+      'Not urgent/important — remove or limit.'
+    ];
+    showIntervention(`${names[q]}: ${tips[q]}`);
+  }
 
-        // Day mode: render 24-hour planner for selectedDate
-        renderDayPlanner(state.selectedDate);
-      }
+  // ---------------- Stats ----------------
+  function updateStats(){
+    $('#focusTime').textContent = state.totalFocusTime;
+    $('#interventions').textContent = state.interventions;
+    $('#tasksCompleted').textContent = state.tasksCompleted;
+  }
 
-      function renderDayPlanner(dateISO){
-        const tasks = db.load().filter(t=>t.start && t.start.slice(0,10)===dateISO);
-        const byHour = {};
-        tasks.forEach(t=>{
-          const h = new Date(t.start).getHours();
-          (byHour[h]=byHour[h]||[]).push(t);
-        });
+  // ---------------- Network status ----------------
+  window.addEventListener('online', ()=>{ $('#offlineIndicator').style.display='none'; showToast('Back Online!'); try{ navigator.serviceWorker.ready.then(r=>r.sync.register('focus-data-sync')); }catch{} });
+  window.addEventListener('offline', ()=>{ $('#offlineIndicator').style.display='inline-block'; });
 
-        const wrapper = document.createElement('div');
-        wrapper.className = 'day-grid';
+  // ---------------- Boot ----------------
+  function boot(){
+    // Hours grid
+    hoursMarkup();
+    setDayLabel();
+    renderTasks();
+    renderEvents();
+    updateStats();
+    // Scroll to now after render
+    setTimeout(scrollToNow, 250);
 
-        for(let h=0; h<24; h++){
-          const label = document.createElement('div');
-          label.className = 'slot-label';
-          const ampm = (h===0?'12a':h<12?`${h}a`:h===12?'12p':`${h-12}p`);
-          label.textContent = ampm;
+    // PWA shortcut actions
+    const action = new URLSearchParams(location.search).get('action');
+    if(action==='focus') setTimeout(quickIntervention, 600);
+    else if(action==='start') setTimeout(startFocusSession, 600);
+    else if(action==='emergency') setTimeout(emergencyRefocus, 400);
 
-          const slot = document.createElement('div');
-          slot.className = 'hour-slot';
-          slot.dataset.hour = String(h);
+    // Gentle nudge every 15m if notifications enabled
+    setInterval(()=>{ if(state.notificationsEnabled) showToast('Focus check — what are you working on?'); }, 15*60*1000);
 
-          // Click to create new scheduled item at this hour
-          slot.onclick = (e)=>{
-            if (e.target.closest('.sched-item')) return; // ignore clicks on items
-            const title = prompt(`New item at ${dateISO} ${String(h).padStart(2,'0')}:00`, '');
-            if(!title) return;
-            const dur = parseInt(prompt('Duration (minutes)?', '60')||'60',10);
-            scheduleNew(title, dateISO, h, isNaN(dur)?60:dur);
-            renderDayPlanner(dateISO);
-            renderListOnly();
-          };
+    // Simple page scroll (still helpful if no extension)
+    let sc=0, t=null; addEventListener('scroll',()=>{ sc++; clearTimeout(t); t=setTimeout(()=>{ if(sc>12) setTimeout(()=>showIntervention('Rapid scrolling detected!'), 600); sc=0; }, 800); }, {passive:true});
 
-          // Drag-over scheduling
-          slot.addEventListener('dragover', e=>{ e.preventDefault(); slot.classList.add('over'); });
-          slot.addEventListener('dragleave', ()=>slot.classList.remove('over'));
-          slot.addEventListener('drop', e=>{
-            e.preventDefault();
-            const id = e.dataTransfer.getData('text/plain');
-            slot.classList.remove('over');
-            const dur = parseInt(prompt('Schedule duration (minutes)?', '60')||'60',10);
-            scheduleExisting(id, dateISO, h, isNaN(dur)?60:dur);
-            renderDayPlanner(dateISO);
-            renderListOnly();
-          });
-
-          // Render scheduled items in this hour
-          (byHour[h]||[]).forEach(t=>{
-            const item = document.createElement('div'); item.className='sched-item'; item.dataset.id=t.id;
-            item.textContent = `${t.title} • ${durationMinutes(t)}m`;
-            item.title = 'Click to edit duration or unschedule';
-
-            item.onclick = ()=>{
-              const choice = prompt('Edit duration (minutes), or type "unschedule" to remove:', String(durationMinutes(t)));
-              if(!choice) return;
-              const tasks = db.load(); const ref = tasks.find(x=>x.id===t.id); if(!ref) return;
-              if(choice.trim().toLowerCase()==='unschedule'){
-                delete ref.start; delete ref.end; db.save(tasks);
-              } else {
-                const mins = parseInt(choice,10); if(isNaN(mins)||mins<=0) return;
-                const start = new Date(ref.start); const end = new Date(start.getTime()+mins*60000);
-                ref.end = end.toISOString(); db.save(tasks);
-              }
-              renderDayPlanner(dateISO);
-              renderListOnly();
-            };
-
-            slot.appendChild(item);
-          });
-
-          wrapper.appendChild(label);
-          wrapper.appendChild(slot);
-        }
-
-        dayPlanner.innerHTML = '';
-        dayPlanner.appendChild(wrapper);
-      }
-
-      // Meta & render
-      function renderMeta(){
-        const meta=db.loadMeta();
-        projectFilter.innerHTML = '<option value="">All Projects</option>'+ meta.projects.map(p=>`<option>${p}</option>`).join('');
-        labelFilter.innerHTML   = '<option value="">All Labels</option>'+ meta.labels.map(l=>`<option>${l}</option>`).join('');
-      }
-      function render(){
-        renderMeta();
-        renderListOnly();
-        renderCalendar();
-        selectedDateLabel.textContent = state.selectedDate;
-      }
-
-      // Public helpers
-      function getActiveTitle(){
-        if (!ACTIVE_TIMER.taskId) return '';
-        const t = db.load().find(x=>x.id===ACTIVE_TIMER.taskId);
-        return t ? t.title : '';
-      }
-
-      // Quick create + start from quadrants
-      function quickAddAndStart(title, opts={}){
-        const p = {
-          title: title || 'Untitled',
-          projects: opts.projects || [],
-          labels: opts.labels || [],
-          priority: opts.priority || 3,
-          due: opts.due || nowISO(),
-          recur: null
-        };
-        const tasks = db.load();
-        const t = {
-          id: uid(),
-          title: p.title,
-          projects: p.projects,
-          labels: p.labels,
-          priority: p.priority,
-          due: p.due,
-          recur: null,
-          createdAt: new Date().toISOString(),
-          completedAt: null,
-          timeLogs: []
-        };
-        tasks.push(t); db.save(tasks);
-
-        const meta = db.loadMeta();
-        p.projects.forEach(x=>{ if(!meta.projects.includes(x)) meta.projects.push(x); });
-        p.labels.forEach(x=>{ if(!meta.labels.includes(x)) meta.labels.push(x); });
-        db.saveMeta(meta);
-
-        ACTIVE_TIMER.start(t.id);
-      }
-
-      // Optional: gentle auto-prompt when a scheduled item starts (checks every 30s)
-      setInterval(()=>{
-        try{
-          if (!ACTIVE_TIMER.taskId) {
-            const now = Date.now();
-            const tasks = db.load().filter(t=>t.start && !t.completedAt);
-            const due = tasks.find(t=>{
-              const dt = new Date(t.start).getTime();
-              return Math.abs(dt - now) < 30*1000;
-            });
-            if (due) {
-              if (Notification && Notification.permission==='granted') {
-                new Notification('Time to start', { body: due.title });
-              }
-              if (confirm(`Start scheduled task now?\n\n${due.title}`)) {
-                ACTIVE_TIMER.start(due.id);
-              }
-            }
-          }
-        }catch(_e){}
-      }, 30000);
-
-      // Bootstrap
-      function bootstrap(){
-        if(!localStorage.getItem(META_KEY)) db.saveMeta({ projects:['Inbox'], labels:['focus'] });
-        const t = new Date(); calYear=t.getFullYear(); calMonth=t.getMonth();
-
-        document.getElementById('prevMonth').onclick = ()=>{ if(calMonth===0){ calMonth=11; calYear--; } else calMonth--; renderCalendar(); };
-        document.getElementById('nextMonth').onclick = ()=>{ if(calMonth===11){ calMonth=0; calYear++; } else calMonth++; renderCalendar(); };
-        document.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && document.activeElement===quickAdd) document.getElementById('addTaskBtn').click(); });
-
-        // Month/Day mode
-        monthMode.onclick = ()=>{ state.calMode='month'; renderCalendar(); };
-        dayMode.onclick   = ()=>{ state.calMode='day';   renderCalendar(); };
-
-        render();
-      }
-
-      return { bootstrap, getActiveTitle, quickAddAndStart };
-    })();
+    // Ask for notifications the first time
+    if('Notification' in window && Notification.permission!=='granted'){
+      setTimeout(()=>requestNotifications(), 1200);
+    }
+  }
+  document.addEventListener('DOMContentLoaded', boot);
   </script>
 </body>
 </html>
