@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Scroll Watcher — Options</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; color: #0f172a; }
+    h1 { font-size: 20px; margin: 0 0 16px; }
+    fieldset { border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    legend { padding: 0 8px; color: #334155; }
+    label { display: block; margin: 10px 0 4px; font-weight: 600; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .actions { margin-top: 16px; display: flex; gap: 12px; }
+    button { padding: 8px 12px; border: 1px solid #334155; border-radius: 6px; background: #e2e8f0; cursor: pointer; }
+    button.primary { background: #3b82f6; color: white; border-color: #1d4ed8; }
+    .hint { color: #475569; font-size: 12px; }
+    #saved { margin-left: 12px; color: #16a34a; visibility: hidden; }
+  </style>
+</head>
+<body>
+  <h1>Focus Intervention • Scroll Watcher — Options</h1>
+
+  <fieldset>
+    <legend>Where to nudge you</legend>
+    <label for="pwaUrl">PWA URL</label>
+    <input type="text" id="pwaUrl" placeholder="https://your-app.example/?action=focus">
+    <div class="hint">When a rapid scroll is detected, this URL is focused or opened.</div>
+
+    <label for="openBehavior">Open behavior</label>
+    <select id="openBehavior">
+      <option value="focus-or-open">Focus existing tab (or open if not found)</option>
+      <option value="open-new">Always open a new tab</option>
+    </select>
+  </fieldset>
+
+  <fieldset>
+    <legend>Scroll detection</legend>
+    <div class="row">
+      <div>
+        <label for="burstThreshold">Burst threshold</label>
+        <input type="number" id="burstThreshold" min="1" step="1">
+        <div class="hint">Number of scroll/wheel/touch events in the window that count as “rapid”.</div>
+      </div>
+      <div>
+        <label for="burstWindowMs">Burst window (ms)</label>
+        <input type="number" id="burstWindowMs" min="100" step="50">
+        <div class="hint">Time window to count those events.</div>
+      </div>
+    </div>
+
+    <label><input type="checkbox" id="ignoreSameOriginPwa"> Ignore events on the PWA itself</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Nudge cadence</legend>
+    <label for="cooldownMs">Cooldown between nudges (ms)</label>
+    <input type="number" id="cooldownMs" min="1000" step="500">
+    <div class="hint">Minimum time between two notifications/open actions.</div>
+  </fieldset>
+
+  <div class="actions">
+    <button id="save" class="primary">Save</button>
+    <button id="reset">Reset to defaults</button>
+    <span id="saved">Saved ✓</span>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
