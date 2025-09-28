@@ -1,4 +1,5 @@
 {
+  "id": "./?app=focus-intervention",
   "name": "Focus Intervention - Anti Doom Scroll",
   "short_name": "Focus Intervention",
   "description": "Stop doom scrolling and get back to what matters with the Eisenhower Matrix",
@@ -11,66 +12,15 @@
   "categories": ["productivity", "lifestyle", "utilities"],
   "lang": "en",
   "icons": [
-    {
-      "src": "icons/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-96.png", 
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-128.png",
-      "sizes": "128x128", 
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192", 
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "icons/icon-384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png", 
-      "purpose": "maskable"
-    }
+    { "src": "icons/icon-72.png",  "sizes": "72x72",  "type": "image/png" },
+    { "src": "icons/icon-96.png",  "sizes": "96x96",  "type": "image/png" },
+    { "src": "icons/icon-128.png", "sizes": "128x128", "type": "image/png" },
+    { "src": "icons/icon-144.png", "sizes": "144x144", "type": "image/png" },
+    { "src": "icons/icon-152.png", "sizes": "152x152", "type": "image/png" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-256.png", "sizes": "256x256", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-384.png", "sizes": "384x384", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "shortcuts": [
     {
@@ -78,39 +28,21 @@
       "short_name": "Focus Check",
       "description": "Immediately check if you're staying focused",
       "url": "./?action=focus",
-      "icons": [
-        {
-          "src": "icons/icon-96.png", 
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Start Focus Session",
       "short_name": "Start Focus",
       "description": "Begin a new focus session",
       "url": "./?action=start",
-      "icons": [
-        {
-          "src": "icons/icon-96.png",
-          "sizes": "96x96", 
-          "type": "image/png"
-        }
-      ]
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Emergency Refocus",
       "short_name": "Emergency",
       "description": "Stop doom scrolling immediately",
       "url": "./?action=emergency",
-      "icons": [
-        {
-          "src": "icons/icon-96.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     }
   ],
   "screenshots": [
@@ -122,7 +54,7 @@
       "label": "Focus Intervention Matrix on Desktop"
     },
     {
-      "src": "screenshots/mobile.png", 
+      "src": "screenshots/mobile.png",
       "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow",
