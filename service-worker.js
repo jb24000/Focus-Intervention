@@ -1,7 +1,8 @@
-/* Focus Intervention — Service Worker (v3)
+/* Focus Intervention — Service Worker (v3, with Snooze Scheduling)
  * - Navigations: network-first (fallback to cached index.html)
  * - Static assets: stale-while-revalidate
- * - Keeps SKIP_WAITING, Background Sync, Push/notification click handlers
+ * - Keeps SKIP_WAITING, Background Sync, Push & Notification actions
+ * - Snooze: uses Notification Triggers when available; otherwise short-hop fallback
  */
 
 const CACHE_VERSION = 'fi-v3-2025-09-28';
@@ -17,7 +18,64 @@ const PRECACHE_ASSETS = [
   // If you add 256px: './icons/icon-256.png',
 ];
 
-/* ---------- Install: pre-cache essentials ---------- */
+/* -------------------------------------------------------------------------- */
+/* Snooze helpers                                                             */
+/* -------------------------------------------------------------------------- */
+
+function supportsTimestampTrigger() {
+  // Available on some Chromium builds/platforms
+  // eslint-disable-next-line no-undef
+  return typeof TimestampTrigger === 'function';
+}
+
+/**
+ * Schedule a local notification inside the SW.
+ * - If Notification Triggers exist → schedule exactly at "whenMs".
+ * - Else → best-effort fallback: hop with short timers until "whenMs".
+ */
+async function scheduleLocalNotificationAt(
+  whenMs,
+  title,
+  body,
+  tag = 'scheduled-reminder',
+  data = {}
+) {
+  if (supportsTimestampTrigger()) {
+    try {
+      // eslint-disable-next-line no-undef
+      await self.registration.showNotification(title || 'Reminder', {
+        body: body || '',
+        icon: './icons/icon-192.png',
+        tag,
+        data,
+        requireInteraction: true,
+        showTrigger: new TimestampTrigger(whenMs)
+      });
+      return true;
+    } catch (e) {
+      // fall through to fallback
+    }
+  }
+
+  // Fallback: hop in short intervals (best-effort; SW may still be suspended)
+  const HOP = 29000; // keep under ~30s to reduce termination risk
+  while (Date.now() < whenMs) {
+    await new Promise((r) => setTimeout(r, Math.min(HOP, whenMs - Date.now())));
+  }
+  await self.registration.showNotification(title || 'Reminder', {
+    body: body || '',
+    icon: './icons/icon-192.png',
+    tag,
+    data,
+    requireInteraction: true
+  });
+  return true;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Install / Activate                                                         */
+/* -------------------------------------------------------------------------- */
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE)
@@ -26,7 +84,6 @@ self.addEventListener('install', (event) => {
   );
 });
 
-/* ---------- Activate: clear old caches ---------- */
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
@@ -39,7 +96,10 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-/* ---------- Helpers ---------- */
+/* -------------------------------------------------------------------------- */
+/* Fetch routing                                                              */
+/* -------------------------------------------------------------------------- */
+
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(RUNTIME_CACHE);
   const cached = await cache.match(request);
@@ -50,12 +110,11 @@ async function staleWhileRevalidate(request) {
   return cached || fetchPromise;
 }
 
-/* ---------- Fetch: smart routing ---------- */
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+  const url = new URL(req.url);
 
   // Only same-origin GET
-  const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== location.origin) return;
 
   // HTML navigations → network first, fallback to cached index
@@ -84,120 +143,162 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Everything else → cache-first then network (optional)
+  // Everything else → cache-first then network
   event.respondWith(
     caches.match(req).then((cached) => cached || fetch(req).then((net) => net))
   );
 });
 
-/* ---------- Messages from the page ---------- */
+/* -------------------------------------------------------------------------- */
+/* Messages from the page                                                     */
+/* -------------------------------------------------------------------------- */
+
 self.addEventListener('message', (event) => {
   const data = event.data || {};
-  if (data.type === 'SKIP_WAITING') self.skipWaiting();
+
+  if (data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 
   if (data.type === 'GET_VERSION' && event.ports && event.ports[0]) {
     event.ports[0].postMessage({ version: CACHE_VERSION });
   }
 
   if (data.type === 'SCHEDULE_NOTIFICATION') {
-    // WARNING: long timers are unreliable in SW (worker may stop).
-    const { title, body, delay } = data;
-    setTimeout(() => {
-      self.registration.showNotification(title || 'Reminder', {
-        body: body || '',
-        icon: './icons/icon-192.png',
-        tag: 'scheduled-reminder'
-      });
-    }, Math.min(Number(delay || 0), 30000)); // keep short, or move to page/extension
+    const delay = Math.max(0, Number(data.delay || 0));
+    const when = Date.now() + delay;
+    event.waitUntil(
+      scheduleLocalNotificationAt(
+        when,
+        data.title || 'Reminder',
+        data.body || '',
+        'scheduled-reminder',
+        data.payload || {}
+      )
+    );
   }
 });
 
-/* ---------- Background Sync (placeholder) ---------- */
+/* -------------------------------------------------------------------------- */
+/* Background Sync (placeholder)                                              */
+/* -------------------------------------------------------------------------- */
+
 self.addEventListener('sync', (event) => {
   if (event.tag === 'focus-data-sync') {
     event.waitUntil(syncFocusData());
   }
 });
+
 async function syncFocusData() {
   try {
     const stored = await getStoredData(); // implement as needed
     if (stored.length > 0) {
+      // Example:
       // await fetch('/api/sync', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(stored) });
       await clearStoredData();
       const clientsList = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
-      for (const client of clientsList) client.postMessage({ type: 'SYNC_SUCCESS', data: stored.length });
+      for (const client of clientsList) {
+        client.postMessage({ type: 'SYNC_SUCCESS', data: stored.length });
+      }
     }
-  } catch (err) { /* noop */ }
+  } catch (err) {
+    // no-op
+  }
 }
-async function getStoredData(){ return []; }
-async function clearStoredData(){ /* noop */ }
 
-/* ---------- Push ---------- */
+async function getStoredData() { return []; }
+async function clearStoredData() { /* no-op */ }
+
+/* -------------------------------------------------------------------------- */
+/* Push & Notification actions                                                */
+/* -------------------------------------------------------------------------- */
+
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data ? event.data.text() : 'Time for a focus check!',
     icon: './icons/icon-192.png',
-    badge: './icons/icon-192.png',
+    badge: './icons/icon-96.png', // keep if you have it; else switch to 192
     image: './icons/icon-512.png',
-    vibrate: [200,100,200,100,200],
+    vibrate: [200, 100, 200, 100, 200],
     tag: 'focus-reminder',
     requireInteraction: true,
     renotify: true,
+    sticky: false,
+    silent: false,
     data: { url: './?action=focus', timestamp: Date.now() },
     actions: [
-      { action: 'focus-now', title: '🎯 Focus Now', icon: './icons/icon-192.png' },
-      { action: 'snooze-5',  title: '⏰ Snooze 5m', icon: './icons/icon-192.png' },
-      { action: 'snooze-15', title: '⏰ Snooze 15m', icon: './icons/icon-192.png' }
+      { action: 'focus-now', title: '🎯 Focus Now', icon: './icons/icon-96.png' },
+      { action: 'snooze-5',  title: '⏰ Snooze 5m', icon: './icons/icon-96.png' },
+      { action: 'snooze-15', title: '⏰ Snooze 15m', icon: './icons/icon-96.png' }
     ]
   };
+
   event.waitUntil(self.registration.showNotification('🎯 Focus Intervention', options));
 });
 
-/* ---------- Notification clicks ---------- */
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const action = event.action;
-  const data = event.notification.data || {};
-  const go = async (url) => {
-    const clientsList = await self.clients.matchAll({ type:'window', includeUncontrolled:true });
-    const existing = clientsList.find(c => c.url && c.url.startsWith(self.location.origin));
+  const clickAction = event.action;
+
+  const openOrFocus = async (url) => {
+    const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const existing = clientsList.find((c) => c.url && c.url.startsWith(self.location.origin));
     if (existing) { existing.navigate(url); existing.focus(); }
     else { await self.clients.openWindow(url); }
   };
 
   event.waitUntil((async () => {
-    if (action === 'focus-now') return go('./?action=focus&notification=true');
-
-    if (action === 'snooze-5' || action === 'snooze-15') {
-      // WARNING: setTimeout in SW is not reliable for long delays.
-      const mins = action === 'snooze-5' ? 5 : 15;
-      setTimeout(() => {
-        self.registration.showNotification('🔔 Focus Time!', {
-          body: `Snooze over. Ready to focus?`,
-          icon: './icons/icon-192.png',
-          tag: 'snooze-reminder',
-          requireInteraction: true
-        });
-      }, Math.min(mins * 60 * 1000, 30000)); // cap to 30s to avoid termination
-      return;
+    if (clickAction === 'focus-now') {
+      return openOrFocus('./?action=focus&notification=true');
     }
 
-    // Default: open app
-    return go('./');
+    if (clickAction === 'snooze-5' || clickAction === 'snooze-15') {
+      const mins = clickAction === 'snooze-5' ? 5 : 15;
+      const when = Date.now() + mins * 60 * 1000;
+      return scheduleLocalNotificationAt(
+        when,
+        '🔔 Focus Time!',
+        'Snooze over. Ready to focus?',
+        'snooze-reminder',
+        { url: './?action=focus' }
+      );
+    }
+
+    // Default: just open the app
+    return openOrFocus('./');
   })());
 });
 
-/* ---------- Periodic Sync (optional) ---------- */
+/* -------------------------------------------------------------------------- */
+/* Periodic background sync (optional)                                        */
+/* -------------------------------------------------------------------------- */
+
 self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'focus-reminder') {
     event.waitUntil(
       self.registration.showNotification('🎯 Periodic Focus Check', {
         body: "How's your focus going?",
         icon: './icons/icon-192.png',
-        tag: 'periodic-focus'
+        tag: 'periodic-focus',
+        requireInteraction: false
       })
     );
   }
 });
+
+/* -------------------------------------------------------------------------- */
+/* Error hooks (for dev diagnostics)                                          */
+/* -------------------------------------------------------------------------- */
+
+self.addEventListener('error', (event) => {
+  // Note: some browsers may not emit this in SW; keep for development
+  // console.error('[SW] Error:', event.error);
+});
+
+self.addEventListener('unhandledrejection', (event) => {
+  // console.error('[SW] Unhandled promise rejection:', event.reason);
+});
+
+/* -------------------------------------------------------------------------- */
 
 console.log('[SW] Loaded', CACHE_VERSION);
