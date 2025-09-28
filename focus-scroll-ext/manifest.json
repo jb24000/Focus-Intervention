@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Focus Intervention • Scroll Watcher",
+  "version": "0.2.0",
+  "description": "Detects rapid scrolling in the browser and nudges you back to your Focus app.",
+  "permissions": ["tabs", "notifications", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "bg.js" },
+  "content_scripts": [
+    { "matches": ["<all_urls>"], "js": ["content.js"], "run_at": "document_start" }
+  ],
+  "icons": { "128": "icon-128.png" },
+  "action": { "default_title": "Scroll Watcher" },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
+}
