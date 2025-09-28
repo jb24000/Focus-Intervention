@@ -106,6 +106,7 @@
     .daybtn{min-width:48px; padding:8px 10px; border-radius:10px; border:1px solid #263754; background:#0f1a30; color:#cbd5e1; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:12px; cursor:pointer;}
     .daybtn strong{font-size:13px; color:#e5edf9}
     .daybtn.active{border-color:#2b4b80; background:#112241}
+    
 
     .planner-grid{position:relative; flex:1; overflow:auto; -webkit-overflow-scrolling: touch; scroll-behavior:smooth; background: linear-gradient(#1f2a44 1px, transparent 1px) 0 0/100% 56px;}
     .hour{position:relative; height:56px; padding-left:58px; display:flex; align-items:flex-start; color:#8ea3c2; font-size:12px}
@@ -114,6 +115,12 @@
     .event{position:absolute; left:58px; right:8px; border:1px solid #2c4a7a; background:rgba(59,130,246,.2); border-left:3px solid var(--brand); border-radius:10px; padding:6px 8px; color:#e5edf9; font-size:13px; display:flex; justify-content:space-between; gap:8px;}
     .ev-time{font-size:11px; color:#c7d2fe}
     .ev-chip{font-size:10px; padding:2px 6px; background:#0f2549; border:1px solid #2b4b80; border-radius:999px}
+    /* Fixes for smooth scrolling + click-through */
+    .planner-grid{overscroll-behavior: contain; /* trap scroll inside the grid */
+    }
+    .nowline{pointer-events: none; /* make sure the red line never blocks scrolling */
+    }
+
 
     /* Sheets */
     .sheet{position:fixed; inset:0; background:rgba(0,0,0,.65); display:none; align-items:flex-end; justify-content:center; z-index:20;}
@@ -897,8 +904,7 @@
     }catch(err){ console.warn('Todoist iCal sync failed:', err); }
   }
 
-    <script>
-    // ---- Clean Mode state/persistence ----
+     // ---- Clean Mode state/persistence ----
     const MODE_KEY = 'fi_ui_mode'; // 'full' | 'clean'
     function getMode(){ return localStorage.getItem(MODE_KEY) || 'full'; }
     function setMode(m){
@@ -911,8 +917,8 @@
       const status = document.getElementById('statusText');
       if(status) status.textContent = (m==='clean') ? 'Clean Mode — minimal & white' : 'Monitoring focus…';
     }
-    </script>
-  <script>
+    
+ 
   // ---------------- Boot ----------------
   function boot(){
     hoursMarkup();
