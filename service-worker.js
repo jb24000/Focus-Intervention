@@ -1,330 +1,198 @@
-const CACHE_NAME = 'focus-intervention-v1.2';
-const STATIC_CACHE_NAME = 'focus-static-v1.2';
-const DYNAMIC_CACHE_NAME = 'focus-dynamic-v1.2';
+/* Focus Intervention — Service Worker (v3)
+ * - Navigations: network-first (fallback to cached index.html)
+ * - Static assets: stale-while-revalidate
+ * - Keeps SKIP_WAITING, Background Sync, Push/notification click handlers
+ */
 
-// Files to cache immediately
-const STATIC_ASSETS = [
+const CACHE_VERSION = 'fi-v3-2025-09-28';
+const STATIC_CACHE = `static-${CACHE_VERSION}`;
+const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
+
+const PRECACHE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './?action=focus',
-  './?action=start', 
-  './?action=emergency',
-  // Add icon paths when you have actual icon files
   './icons/icon-192.png',
   './icons/icon-512.png'
+  // If you add 256px: './icons/icon-256.png',
 ];
 
-// Install event - cache static assets
+/* ---------- Install: pre-cache essentials ---------- */
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing Service Worker');
-  
   event.waitUntil(
-    caches.open(STATIC_CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
-      })
-      .then(() => {
-        // Force activation of new service worker
-        return self.skipWaiting();
-      })
-      .catch((error) => {
-        console.error('[SW] Failed to cache static assets:', error);
-      })
+    caches.open(STATIC_CACHE)
+      .then((cache) => cache.addAll(PRECACHE_ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
-// Activate event - clean up old caches
+/* ---------- Activate: clear old caches ---------- */
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating Service Worker');
-  
-  event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== STATIC_CACHE_NAME && 
-                cacheName !== DYNAMIC_CACHE_NAME &&
-                cacheName.startsWith('focus-')) {
-              console.log('[SW] Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-      .then(() => {
-        // Take control of all clients immediately
-        return self.clients.claim();
-      })
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(
+      keys
+        .filter((k) => k !== STATIC_CACHE && k !== RUNTIME_CACHE)
+        .map((k) => caches.delete(k))
+    );
+    await self.clients.claim();
+  })());
 });
 
-// Fetch event - serve from cache, fallback to network
+/* ---------- Helpers ---------- */
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(RUNTIME_CACHE);
+  const cached = await cache.match(request);
+  const fetchPromise = fetch(request).then((networkResp) => {
+    if (networkResp && networkResp.ok) cache.put(request, networkResp.clone());
+    return networkResp;
+  }).catch(() => cached);
+  return cached || fetchPromise;
+}
+
+/* ---------- Fetch: smart routing ---------- */
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  
-  // Skip cross-origin requests
-  if (!request.url.startsWith(self.location.origin)) {
+  const req = event.request;
+
+  // Only same-origin GET
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== location.origin) return;
+
+  // HTML navigations → network first, fallback to cached index
+  const isHTML =
+    req.mode === 'navigate' ||
+    (req.headers.get('accept') || '').includes('text/html');
+
+  if (isHTML) {
+    event.respondWith((async () => {
+      try {
+        const net = await fetch(req);
+        const cache = await caches.open(STATIC_CACHE);
+        cache.put(req, net.clone());
+        return net;
+      } catch {
+        const cache = await caches.open(STATIC_CACHE);
+        return (await cache.match(req)) || (await cache.match('./index.html'));
+      }
+    })());
     return;
   }
 
+  // Static assets → stale-while-revalidate
+  if (/\.(?:js|css|png|jpg|jpeg|svg|webp|json|woff2?)$/i.test(url.pathname)) {
+    event.respondWith(staleWhileRevalidate(req));
+    return;
+  }
+
+  // Everything else → cache-first then network (optional)
   event.respondWith(
-    caches.match(request)
-      .then((cachedResponse) => {
-        if (cachedResponse) {
-          console.log('[SW] Serving from cache:', request.url);
-          return cachedResponse;
-        }
-
-        // Not in cache, fetch from network
-        return fetch(request)
-          .then((networkResponse) => {
-            // Don't cache if not a success response
-            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
-            }
-
-            // Clone the response for caching
-            const responseToCache = networkResponse.clone();
-
-            caches.open(DYNAMIC_CACHE_NAME)
-              .then((cache) => {
-                console.log('[SW] Caching new resource:', request.url);
-                cache.put(request, responseToCache);
-              });
-
-            return networkResponse;
-          })
-          .catch((error) => {
-            console.error('[SW] Fetch failed:', error);
-            
-            // Return offline fallback for navigation requests
-            if (request.mode === 'navigate') {
-              return caches.match('./');
-            }
-            
-            return new Response('Offline - Please check your connection', {
-              status: 503,
-              statusText: 'Service Unavailable',
-              headers: new Headers({
-                'Content-Type': 'text/plain'
-              })
-            });
-          });
-      })
+    caches.match(req).then((cached) => cached || fetch(req).then((net) => net))
   );
 });
 
-// Background sync for offline functionality
+/* ---------- Messages from the page ---------- */
+self.addEventListener('message', (event) => {
+  const data = event.data || {};
+  if (data.type === 'SKIP_WAITING') self.skipWaiting();
+
+  if (data.type === 'GET_VERSION' && event.ports && event.ports[0]) {
+    event.ports[0].postMessage({ version: CACHE_VERSION });
+  }
+
+  if (data.type === 'SCHEDULE_NOTIFICATION') {
+    // WARNING: long timers are unreliable in SW (worker may stop).
+    const { title, body, delay } = data;
+    setTimeout(() => {
+      self.registration.showNotification(title || 'Reminder', {
+        body: body || '',
+        icon: './icons/icon-192.png',
+        tag: 'scheduled-reminder'
+      });
+    }, Math.min(Number(delay || 0), 30000)); // keep short, or move to page/extension
+  }
+});
+
+/* ---------- Background Sync (placeholder) ---------- */
 self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync:', event.tag);
-  
   if (event.tag === 'focus-data-sync') {
     event.waitUntil(syncFocusData());
   }
 });
-
 async function syncFocusData() {
   try {
-    // Get stored offline data
-    const stored = await getStoredData();
-    
+    const stored = await getStoredData(); // implement as needed
     if (stored.length > 0) {
-      console.log('[SW] Syncing', stored.length, 'items');
-      
-      // Send data to server when back online
-      // await fetch('/api/sync', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(stored)
-      // });
-      
-      // Clear stored data after successful sync
+      // await fetch('/api/sync', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(stored) });
       await clearStoredData();
-      
-      // Notify all clients about successful sync
-      const clients = await self.clients.matchAll();
-      clients.forEach(client => {
-        client.postMessage({
-          type: 'SYNC_SUCCESS',
-          data: stored.length
-        });
-      });
+      const clientsList = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+      for (const client of clientsList) client.postMessage({ type: 'SYNC_SUCCESS', data: stored.length });
     }
-  } catch (error) {
-    console.error('[SW] Sync failed:', error);
-  }
+  } catch (err) { /* noop */ }
 }
+async function getStoredData(){ return []; }
+async function clearStoredData(){ /* noop */ }
 
-async function getStoredData() {
-  // Get data from IndexedDB or localStorage
-  // This is a placeholder - implement based on your data structure
-  return [];
-}
-
-async function clearStoredData() {
-  // Clear synced data from local storage
-  console.log('[SW] Clearing synced data');
-}
-
-// Push notifications
+/* ---------- Push ---------- */
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push received:', event);
-  
   const options = {
     body: event.data ? event.data.text() : 'Time for a focus check!',
     icon: './icons/icon-192.png',
-    badge: './icons/icon-96.png',
+    badge: './icons/icon-192.png',
     image: './icons/icon-512.png',
-    vibrate: [200, 100, 200, 100, 200],
+    vibrate: [200,100,200,100,200],
     tag: 'focus-reminder',
     requireInteraction: true,
     renotify: true,
-    sticky: false,
-    silent: false,
-    data: {
-      url: './?action=focus',
-      timestamp: Date.now()
-    },
+    data: { url: './?action=focus', timestamp: Date.now() },
     actions: [
-      {
-        action: 'focus-now',
-        title: '🎯 Focus Now',
-        icon: './icons/icon-96.png'
-      },
-      {
-        action: 'snooze-5',
-        title: '⏰ Snooze 5min',
-        icon: './icons/icon-96.png'
-      },
-      {
-        action: 'snooze-15',
-        title: '⏰ Snooze 15min',
-        icon: './icons/icon-96.png'
-      }
+      { action: 'focus-now', title: '🎯 Focus Now', icon: './icons/icon-192.png' },
+      { action: 'snooze-5',  title: '⏰ Snooze 5m', icon: './icons/icon-192.png' },
+      { action: 'snooze-15', title: '⏰ Snooze 15m', icon: './icons/icon-192.png' }
     ]
   };
-
-  event.waitUntil(
-    self.registration.showNotification('🎯 Focus Intervention', options)
-  );
+  event.waitUntil(self.registration.showNotification('🎯 Focus Intervention', options));
 });
 
-// Handle notification clicks
+/* ---------- Notification clicks ---------- */
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event.action);
-  
   event.notification.close();
+  const action = event.action;
+  const data = event.notification.data || {};
+  const go = async (url) => {
+    const clientsList = await self.clients.matchAll({ type:'window', includeUncontrolled:true });
+    const existing = clientsList.find(c => c.url && c.url.startsWith(self.location.origin));
+    if (existing) { existing.navigate(url); existing.focus(); }
+    else { await self.clients.openWindow(url); }
+  };
 
-  const clickAction = event.action;
-  const notificationData = event.notification.data;
+  event.waitUntil((async () => {
+    if (action === 'focus-now') return go('./?action=focus&notification=true');
 
-  event.waitUntil(
-    (async () => {
-      const clients = await self.clients.matchAll({
-        type: 'window',
-        includeUncontrolled: true
-      });
+    if (action === 'snooze-5' || action === 'snooze-15') {
+      // WARNING: setTimeout in SW is not reliable for long delays.
+      const mins = action === 'snooze-5' ? 5 : 15;
+      setTimeout(() => {
+        self.registration.showNotification('🔔 Focus Time!', {
+          body: `Snooze over. Ready to focus?`,
+          icon: './icons/icon-192.png',
+          tag: 'snooze-reminder',
+          requireInteraction: true
+        });
+      }, Math.min(mins * 60 * 1000, 30000)); // cap to 30s to avoid termination
+      return;
+    }
 
-      // Check if app is already open
-      const existingClient = clients.find(client => 
-        client.url.includes(self.location.origin)
-      );
-
-      if (clickAction === 'focus-now') {
-        const targetUrl = './?action=focus&notification=true';
-        
-        if (existingClient) {
-          existingClient.navigate(targetUrl);
-          existingClient.focus();
-        } else {
-          await self.clients.openWindow(targetUrl);
-        }
-        
-      } else if (clickAction === 'snooze-5') {
-        console.log('[SW] Snoozed for 5 minutes');
-        setTimeout(() => {
-          self.registration.showNotification('🔔 Snooze Over!', {
-            body: 'Time to focus again!',
-            icon: './icons/icon-192.png',
-            tag: 'snooze-reminder',
-            requireInteraction: true
-          });
-        }, 5 * 60 * 1000); // 5 minutes
-        
-      } else if (clickAction === 'snooze-15') {
-        console.log('[SW] Snoozed for 15 minutes');
-        setTimeout(() => {
-          self.registration.showNotification('🔔 Focus Time!', {
-            body: '15 minute snooze is over. Ready to focus?',
-            icon: './icons/icon-192.png',
-            tag: 'snooze-reminder',
-            requireInteraction: true
-          });
-        }, 15 * 60 * 1000); // 15 minutes
-        
-      } else {
-        // Default action - open app
-        const targetUrl = './';
-        
-        if (existingClient) {
-          existingClient.focus();
-        } else {
-          await self.clients.openWindow(targetUrl);
-        }
-      }
-    })()
-  );
+    // Default: open app
+    return go('./');
+  })());
 });
 
-// Handle messages from the main app
-self.addEventListener('message', (event) => {
-  console.log('[SW] Message received:', event.data);
-  
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  
-  if (event.data && event.data.type === 'GET_VERSION') {
-    event.ports[0].postMessage({ version: CACHE_NAME });
-  }
-  
-  if (event.data && event.data.type === 'SCHEDULE_NOTIFICATION') {
-    const { title, body, delay } = event.data;
-    setTimeout(() => {
-      self.registration.showNotification(title, {
-        body: body,
-        icon: './icons/icon-192.png',
-        tag: 'scheduled-reminder'
-      });
-    }, delay);
-  }
-});
-
-// Handle notification close
-self.addEventListener('notificationclose', (event) => {
-  console.log('[SW] Notification closed:', event.notification.tag);
-  
-  // Track notification dismissals
-  // Could send analytics data here
-});
-
-// Error handling
-self.addEventListener('error', (event) => {
-  console.error('[SW] Error:', event.error);
-});
-
-self.addEventListener('unhandledrejection', (event) => {
-  console.error('[SW] Unhandled promise rejection:', event.reason);
-});
-
-// Periodic background sync (if supported)
+/* ---------- Periodic Sync (optional) ---------- */
 self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'focus-reminder') {
     event.waitUntil(
       self.registration.showNotification('🎯 Periodic Focus Check', {
-        body: 'How\'s your focus going?',
+        body: "How's your focus going?",
         icon: './icons/icon-192.png',
         tag: 'periodic-focus'
       })
@@ -332,4 +200,4 @@ self.addEventListener('periodicsync', (event) => {
   }
 });
 
-console.log('[SW] Service Worker loaded successfully');
+console.log('[SW] Loaded', CACHE_VERSION);
